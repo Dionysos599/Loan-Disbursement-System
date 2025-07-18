@@ -24,6 +24,36 @@ public class ForecastingController {
 
     private final ForecastingService forecastingService;
 
+    @PostMapping("/generate-batch")
+    public ResponseEntity<Map<String, Object>> generateBatchForecast(@RequestBody Map<String, Object> request) {
+        log.info("Received batch forecast generation request");
+        
+        try {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> loanDataList = (List<Map<String, Object>>) request.get("loanDataList");
+            LocalDate forecastStartDate = LocalDate.parse(request.get("forecastStartDate").toString());
+            
+            if (loanDataList == null || loanDataList.isEmpty()) {
+                throw new IllegalArgumentException("loanDataList cannot be null or empty");
+            }
+            
+            Map<String, Object> forecastResult = forecastingService.generateLoanForecasts(loanDataList, forecastStartDate);
+            
+            log.info("Generated batch forecast for {} loans", loanDataList.size());
+            return ResponseEntity.ok(forecastResult);
+            
+        } catch (Exception e) {
+            log.error("Error generating batch forecast: {}", e.getMessage(), e);
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "ERROR");
+            errorResponse.put("message", "Failed to generate batch forecast: " + e.getMessage());
+            errorResponse.put("generatedAt", LocalDateTime.now());
+            
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
     @PostMapping("/generate")
     public ResponseEntity<ForecastResponse> generateForecast(@RequestBody Map<String, Object> request) {
         log.info("Received forecast generation request");

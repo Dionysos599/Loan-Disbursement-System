@@ -4,8 +4,8 @@ server:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/loan_disbursement
-    username: loan_app
-    password: loan_password
+    username: postgres
+    password: password
     driver-class-name: org.postgresql.Driver
   
   jpa:

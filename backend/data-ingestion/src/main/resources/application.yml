@@ -6,14 +6,14 @@ spring:
     name: data-ingestion-service
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/loan_disbursement
+    url: jdbc:postgresql://localhost:5433/loan_disbursement
     username: postgres
     password: password
     driver-class-name: org.postgresql.Driver
   
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -23,7 +23,7 @@ spring:
   redis:
     host: localhost
     port: 6379
-    timeout: 2000ms
+    timeout: 60000
     lettuce:
       pool:
         max-active: 8
@@ -39,3 +39,7 @@ logging:
   level:
     com.bankplus.data_ingestion: DEBUG
     com.bankplus.data_ingestion.service.CsvProcessingService: DEBUG 
+
+forecasting:
+  service:
+    url: http://loan-forecasting-service:8082 

@@ -80,8 +80,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
 
   const menuItems = [
     { text: 'Dashboard', icon: <Dashboard />, page: 'dashboard' },
-    { text: 'Portfolio', icon: <AccountBalance />, page: 'portfolio' },
-    { text: 'Loans', icon: <Timeline />, page: 'loans' },
     { text: 'Data Upload', icon: <CloudUpload />, page: 'upload' },
     { text: 'Forecast', icon: <TrendingUp />, page: 'forecast' },
   ];

@@ -31,6 +31,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [batchId, setBatchId] = useState<string | null>(null);
+  const [startMonth, setStartMonth] = useState<Dayjs>(dayjs().startOf('month'));
   const [forecastDialogOpen, setForecastDialogOpen] = useState(false);
   const [forecastConfig, setForecastConfig] = useState({
     forecastStartDate: dayjs(),
@@ -60,6 +61,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
+      formData.append('startMonth', startMonth.format('YYYY-MM-DD'));
 
       const response = await fetch('http://localhost:8081/api/data-ingestion/upload', {
         method: 'POST',
@@ -70,8 +72,38 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
 
       if (response.ok) {
         setBatchId(result.batchId);
-        setUploadStatus(`Successfully processed ${result.processedRecords} records`);
-        setForecastDialogOpen(true);
+        setUploadStatus(`Successfully processed ${result.processedRecords} records with forecast data`);
+        // 直接使用上传返回的预测数据
+        if (result.loanForecasts && result.loanForecasts.length > 0) {
+          onForecastGenerated({
+            forecastId: result.batchId,
+            batchId: result.batchId,
+            status: 'COMPLETED',
+            generatedAt: result.processedAt,
+            forecastStartDate: startMonth.format('YYYY-MM-DD'),
+            forecastEndDate: startMonth.add(2, 'year').format('YYYY-MM-DD'),
+            forecastModel: 'S-curve',
+            forecastData: result.loanForecasts.flatMap((loan: any) => 
+              Object.entries(loan.forecastData || {}).map(([date, amount]) => ({
+                loanNumber: loan.loanNumber || 'N/A',
+                date: date,
+                cumulativeAmount: amount,
+                monthlyAmount: amount, // 这里可以计算月度增量
+                percentComplete: 0,
+                forecastType: 'S-curve',
+                scenarioName: loan.customerName || 'Unknown',
+                confidenceLevel: 0.85,
+              }))
+            ),
+            summary: {
+              totalLoans: result.processedRecords,
+              totalForecastedAmount: result.loanForecasts.reduce((sum: number, loan: any) => sum + (loan.totalForecastedAmount || 0), 0)
+            },
+            message: result.message
+          });
+        } else {
+          setForecastDialogOpen(true);
+        }
       } else {
         setUploadStatus(`Upload failed: ${result.message}`);
       }
@@ -145,46 +177,49 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
 
           {/* File Upload Section */}
           <Box sx={{ mb: 3 }}>
-            <input
-              accept=".csv"
-              style={{ display: 'none' }}
-              id="csv-file-input"
-              type="file"
-              onChange={handleFileSelect}
-            />
-            <label htmlFor="csv-file-input">
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               <Button
                 variant="outlined"
-                component="span"
+                component="label"
                 startIcon={<CloudUpload />}
-                disabled={uploading}
-                sx={{ mb: 2 }}
+                sx={{ minWidth: 200 }}
               >
-                Select CSV File
-              </Button>
-            </label>
-            
-            {selectedFile && (
-              <Box sx={{ ml: 2, display: 'inline-block' }}>
-                <Chip 
-                  label={selectedFile.name} 
-                  color="primary" 
-                  variant="outlined"
-                  onDelete={() => setSelectedFile(null)}
+                SELECT CSV FILE
+                <input
+                  type="file"
+                  hidden
+                  accept=".csv"
+                  onChange={handleFileSelect}
                 />
-              </Box>
-            )}
-            
-            {selectedFile && (
+              </Button>
+              
+              {selectedFile && (
+                <Chip
+                  label={selectedFile.name}
+                  onDelete={() => setSelectedFile(null)}
+                  color="primary"
+                />
+              )}
+              
+              <DatePicker
+                label="预测起点"
+                value={startMonth}
+                onChange={(date) => setStartMonth(date || dayjs().startOf('month'))}
+                views={['year', 'month']}
+                format="YYYY-MM"
+                sx={{ minWidth: 150 }}
+              />
+              
               <Button
                 variant="contained"
                 onClick={handleUpload}
-                disabled={uploading}
-                sx={{ ml: 2 }}
+                disabled={!selectedFile || uploading}
+                startIcon={uploading ? <LinearProgress /> : <CloudUpload />}
+                sx={{ minWidth: 200 }}
               >
-                Upload & Process
+                {uploading ? 'UPLOADING...' : 'UPLOAD & PROCESS'}
               </Button>
-            )}
+            </Box>
           </Box>
 
           {/* Upload Progress */}

@@ -26,19 +26,25 @@ public class DataIngestionController {
     private final CsvProcessingService csvProcessingService;
 
     @PostMapping("/upload")
-    public ResponseEntity<DataIngestionResponse> uploadCsvFile(@RequestParam("file") MultipartFile file) {
-        log.info("Received CSV file upload: {}", file.getOriginalFilename());
+    public ResponseEntity<DataIngestionResponse> uploadCsvFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("startMonth") String startMonth // 例如 "2024-11-01"
+    ) {
+        log.info("Received CSV file upload: {} with startMonth {}", file.getOriginalFilename(), startMonth);
         
         try {
             // Process the CSV file
             List<CsvLoanData> loanDataList = csvProcessingService.processCsvFile(file);
             
-            // Convert to forecast data for each company
-            List<LoanForecastData> forecastDataList = csvProcessingService.convertToLoanForecastData(loanDataList);
+            // Convert to forecast data for each company, 传递预测起点
+            List<LoanForecastData> forecastDataList = csvProcessingService.convertToLoanForecastData(loanDataList, startMonth);
             
             // Generate batch ID
             String batchId = csvProcessingService.generateBatchId();
-            
+            // 写入预测结果到Output目录
+            csvProcessingService.writeForecastToCsv(forecastDataList, "CLL_report_113124_predicted.csv");
+            // 生成预测CSV到forecast目录
+            csvProcessingService.generateForecastCsv(forecastDataList, file.getOriginalFilename());
             // Create response
             DataIngestionResponse response = DataIngestionResponse.builder()
                     .batchId(batchId)
@@ -50,7 +56,6 @@ public class DataIngestionController {
                     .message("Successfully processed " + forecastDataList.size() + " loan records with forecast data")
                     .loanForecasts(forecastDataList)
                     .build();
-            
             log.info("Successfully processed CSV file with batch ID: {} - {} companies with forecast data", 
                     batchId, forecastDataList.size());
             return ResponseEntity.ok(response);
