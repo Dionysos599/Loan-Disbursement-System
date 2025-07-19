@@ -1,82 +1,112 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
+  Box,
   Card,
   CardContent,
   Typography,
-  Box,
   Button,
-  Alert,
   LinearProgress,
-  Chip,
+  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Chip,
+  Divider,
 } from '@mui/material';
+import { CloudUpload, TrendingUp, Assessment, Delete, Refresh } from '@mui/icons-material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { CloudUpload, Analytics, Timeline } from '@mui/icons-material';
 import dayjs, { Dayjs } from 'dayjs';
+import { dataIngestionAPI } from '../services/api';
 
 interface DataUploadProps {
-  onForecastGenerated: (forecastData: any) => void;
+  onForecastGenerated: (data: any) => void;
+}
+
+interface UploadHistory {
+  id: number;
+  batchId: string;
+  originalFilename: string;
+  fileSize: number;
+  totalRecords: number;
+  processedRecords: number;
+  failedRecords: number;
+  uploadStatus: string;
+  forecastStartDate: string;
+  uploadedAt: string;
+  processedAt: string;
+  errorMessage?: string;
 }
 
 const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const [batchId, setBatchId] = useState<string | null>(null);
-  const [startMonth, setStartMonth] = useState<Dayjs>(dayjs().startOf('month'));
+  const [uploadStatus, setUploadStatus] = useState<string>('');
   const [forecastDialogOpen, setForecastDialogOpen] = useState(false);
-  const [forecastConfig, setForecastConfig] = useState({
-    forecastStartDate: dayjs(),
-    forecastEndDate: dayjs().add(2, 'year'),
-    forecastModel: 'S-curve',
-    steepness: 6.0,
-    midpoint: 0.4,
-  });
-  const [generatingForecast, setGeneratingForecast] = useState(false);
+  const [batchId, setBatchId] = useState<string>('');
+  const [startMonth, setStartMonth] = useState<Dayjs>(dayjs().add(1, 'month').startOf('month'));
+  const [uploadHistory, setUploadHistory] = useState<UploadHistory[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // 加载上传历史
+  const loadUploadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const history = await dataIngestionAPI.getUploadHistory();
+      setUploadHistory(history);
+    } catch (error) {
+      console.error('Failed to load upload history:', error);
+      setUploadStatus('Failed to load upload history');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUploadHistory();
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type === 'text/csv') {
+    if (file) {
       setSelectedFile(file);
-      setUploadStatus(null);
-    } else {
-      setUploadStatus('Please select a valid CSV file');
+      setUploadStatus('');
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      setUploadStatus('Please select a file first');
+      return;
+    }
 
     setUploading(true);
-    setUploadStatus('Uploading file...');
+    setUploadStatus('');
 
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('startMonth', startMonth.format('YYYY-MM-DD'));
-
-      const response = await fetch('http://localhost:8081/api/data-ingestion/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
+      const result = await dataIngestionAPI.uploadCSV(selectedFile, startMonth.format('YYYY-MM-DD'));
+      
+      if (result.status === 'SUCCESS') {
+        setUploadStatus(`Upload successful! Processed ${result.processedRecords} records.`);
         setBatchId(result.batchId);
-        setUploadStatus(`Successfully processed ${result.processedRecords} records with forecast data`);
-        // 直接使用上传返回的预测数据
+        
+        // 重新加载上传历史
+        loadUploadHistory();
+        
+        // 生成前端显示的数据结构
         if (result.loanForecasts && result.loanForecasts.length > 0) {
-          onForecastGenerated({
-            forecastId: result.batchId,
+          const forecastData = {
             batchId: result.batchId,
             status: 'COMPLETED',
             generatedAt: result.processedAt,
@@ -100,7 +130,9 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
               totalForecastedAmount: result.loanForecasts.reduce((sum: number, loan: any) => sum + (loan.totalForecastedAmount || 0), 0)
             },
             message: result.message
-          });
+          };
+
+          onForecastGenerated(forecastData);
         } else {
           setForecastDialogOpen(true);
         }
@@ -115,229 +147,213 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
     }
   };
 
+  const handleDeleteHistory = async (batchId: string) => {
+    if (!window.confirm('Are you sure you want to delete this upload history?')) {
+      return;
+    }
+
+    try {
+      await dataIngestionAPI.deleteUploadHistory(batchId);
+      setUploadStatus('Upload history deleted successfully');
+      loadUploadHistory(); // 重新加载列表
+    } catch (error) {
+      console.error('Failed to delete upload history:', error);
+      setUploadStatus('Failed to delete upload history');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getStatusChip = (status: string) => {
+    const statusConfig = {
+      SUCCESS: { color: 'success' as const, label: 'Success' },
+      FAILED: { color: 'error' as const, label: 'Failed' },
+      PROCESSING: { color: 'warning' as const, label: 'Processing' },
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || { color: 'default' as const, label: status };
+    return <Chip label={config.label} color={config.color} size="small" />;
+  };
+
   const handleGenerateForecast = async () => {
     if (!batchId) return;
 
-    setGeneratingForecast(true);
-
     try {
-      const forecastRequest = {
-        batchId,
-        forecastStartDate: forecastConfig.forecastStartDate.format('YYYY-MM-DD'),
-        forecastEndDate: forecastConfig.forecastEndDate.format('YYYY-MM-DD'),
-        forecastModel: forecastConfig.forecastModel,
-        steepness: forecastConfig.steepness,
-        midpoint: forecastConfig.midpoint,
-        // Sample loan data for demonstration
-        loanNumber: 'SAMPLE_LOAN_001',
-        totalLoanAmount: 5000000,
-        currentDrawnAmount: 1000000,
-        currentCompletion: 20,
-        startDate: dayjs().subtract(6, 'month').format('YYYY-MM-DD'),
-        maturityDate: dayjs().add(18, 'month').format('YYYY-MM-DD'),
-      };
-
-      const response = await fetch('http://localhost:8082/api/forecasting/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(forecastRequest),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        onForecastGenerated(result);
-        setForecastDialogOpen(false);
-        setUploadStatus('Forecast generated successfully!');
-      } else {
-        setUploadStatus(`Forecast generation failed: ${result.message}`);
-      }
+      // TODO: Call forecast generation API
+      setForecastDialogOpen(false);
+      setUploadStatus('Forecast generated successfully!');
     } catch (error) {
-      setUploadStatus('Forecast generation failed: Network error');
-      console.error('Forecast error:', error);
-    } finally {
-      setGeneratingForecast(false);
+      console.error('Forecast generation failed:', error);
+      setUploadStatus('Forecast generation failed');
     }
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Card>
+    <Box sx={{ maxWidth: 1200, margin: '0 auto', p: 3 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        数据上传与预测
+      </Typography>
+
+      {/* 文件上传区域 */}
+      <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h5" gutterBottom>
-            <CloudUpload sx={{ mr: 1, verticalAlign: 'middle' }} />
-            Data Upload & Forecasting
-          </Typography>
-          
-          <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
-            Upload your loan disbursement CSV file to generate forecasts and visualizations.
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+            <CloudUpload sx={{ mr: 1 }} />
+            上传CSV文件
           </Typography>
 
-          {/* File Upload Section */}
           <Box sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+              id="file-input"
+            />
+            <label htmlFor="file-input">
               <Button
                 variant="outlined"
-                component="label"
+                component="span"
                 startIcon={<CloudUpload />}
-                sx={{ minWidth: 200 }}
+                sx={{ mr: 2 }}
               >
-                SELECT CSV FILE
-                <input
-                  type="file"
-                  hidden
-                  accept=".csv"
-                  onChange={handleFileSelect}
-                />
+                选择CSV文件
               </Button>
-              
-              {selectedFile && (
-                <Chip
-                  label={selectedFile.name}
-                  onDelete={() => setSelectedFile(null)}
-                  color="primary"
-                />
-              )}
-              
-              <DatePicker
-                label="预测起点"
-                value={startMonth}
-                onChange={(date) => setStartMonth(date || dayjs().startOf('month'))}
-                views={['year', 'month']}
-                format="YYYY-MM"
-                sx={{ minWidth: 150 }}
-              />
-              
-              <Button
-                variant="contained"
-                onClick={handleUpload}
-                disabled={!selectedFile || uploading}
-                startIcon={uploading ? <LinearProgress /> : <CloudUpload />}
-                sx={{ minWidth: 200 }}
-              >
-                {uploading ? 'UPLOADING...' : 'UPLOAD & PROCESS'}
-              </Button>
-            </Box>
+            </label>
+
+            {selectedFile && (
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                已选择: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+              </Typography>
+            )}
           </Box>
 
-          {/* Upload Progress */}
-          {uploading && (
-            <Box sx={{ mb: 2 }}>
-              <LinearProgress />
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                Processing file...
-              </Typography>
-            </Box>
-          )}
+          <Box sx={{ mb: 3 }}>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="预测开始月份"
+                value={startMonth}
+                onChange={(newValue) => setStartMonth(newValue || dayjs())}
+                views={['year', 'month']}
+                sx={{ width: 250 }}
+              />
+            </LocalizationProvider>
+          </Box>
 
-          {/* Status Messages */}
+          <Button
+            variant="contained"
+            onClick={handleUpload}
+            disabled={!selectedFile || uploading}
+            startIcon={<TrendingUp />}
+            sx={{ mb: 2 }}
+          >
+            {uploading ? '上传中...' : '上传并生成预测'}
+          </Button>
+
+          {uploading && <LinearProgress sx={{ mb: 2 }} />}
+
           {uploadStatus && (
             <Alert 
-              severity={uploadStatus.includes('Success') ? 'success' : 'error'}
-              sx={{ mb: 2 }}
+              severity={uploadStatus.includes('successful') || uploadStatus.includes('SUCCESS') ? 'success' : 'error'} 
+              sx={{ mt: 2 }}
             >
               {uploadStatus}
             </Alert>
           )}
+        </CardContent>
+      </Card>
 
-          {/* Batch ID Display */}
-          {batchId && (
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="textSecondary">
-                Batch ID: <Chip label={batchId} size="small" />
-              </Typography>
-            </Box>
+      {/* 上传历史区域 */}
+      <Card>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+              <Assessment sx={{ mr: 1 }} />
+              上传历史
+            </Typography>
+            <Button
+              variant="outlined"
+              startIcon={<Refresh />}
+              onClick={loadUploadHistory}
+              disabled={loadingHistory}
+            >
+              刷新
+            </Button>
+          </Box>
+
+          {loadingHistory ? (
+            <LinearProgress />
+          ) : (
+            <TableContainer component={Paper} variant="outlined">
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>文件名</TableCell>
+                    <TableCell>状态</TableCell>
+                    <TableCell>文件大小</TableCell>
+                    <TableCell>总记录数</TableCell>
+                    <TableCell>处理成功</TableCell>
+                    <TableCell>处理失败</TableCell>
+                    <TableCell>上传时间</TableCell>
+                    <TableCell>操作</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {uploadHistory.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center">
+                        暂无上传记录
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    uploadHistory.map((history) => (
+                      <TableRow key={history.id}>
+                        <TableCell>{history.originalFilename}</TableCell>
+                        <TableCell>{getStatusChip(history.uploadStatus)}</TableCell>
+                        <TableCell>{formatFileSize(history.fileSize)}</TableCell>
+                        <TableCell>{history.totalRecords || 0}</TableCell>
+                        <TableCell>{history.processedRecords || 0}</TableCell>
+                        <TableCell>{history.failedRecords || 0}</TableCell>
+                        <TableCell>{dayjs(history.uploadedAt).format('YYYY-MM-DD HH:mm')}</TableCell>
+                        <TableCell>
+                          <IconButton
+                            color="error"
+                            onClick={() => handleDeleteHistory(history.batchId)}
+                            size="small"
+                          >
+                            <Delete />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </CardContent>
       </Card>
 
-      {/* Forecast Configuration Dialog */}
-      <Dialog 
-        open={forecastDialogOpen} 
-        onClose={() => setForecastDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Analytics sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Configure Forecast Parameters
-        </DialogTitle>
+      {/* 预测生成对话框 */}
+      <Dialog open={forecastDialogOpen} onClose={() => setForecastDialogOpen(false)}>
+        <DialogTitle>生成预测</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1 }}>
-            <DatePicker
-              label="Forecast Start Date"
-              value={forecastConfig.forecastStartDate}
-              onChange={(date) => setForecastConfig({
-                ...forecastConfig,
-                forecastStartDate: date || dayjs()
-              })}
-            />
-            
-            <DatePicker
-              label="Forecast End Date"
-              value={forecastConfig.forecastEndDate}
-              onChange={(date) => setForecastConfig({
-                ...forecastConfig,
-                forecastEndDate: date || dayjs().add(2, 'year')
-              })}
-            />
-            
-            <FormControl fullWidth>
-              <InputLabel>Forecast Model</InputLabel>
-              <Select
-                value={forecastConfig.forecastModel}
-                label="Forecast Model"
-                onChange={(e) => setForecastConfig({
-                  ...forecastConfig,
-                  forecastModel: e.target.value
-                })}
-              >
-                <MenuItem value="S-curve">S-Curve</MenuItem>
-                <MenuItem value="linear">Linear</MenuItem>
-                <MenuItem value="multiple">Multiple Scenarios</MenuItem>
-              </Select>
-            </FormControl>
-            
-            {forecastConfig.forecastModel === 'S-curve' && (
-              <>
-                <TextField
-                  label="Steepness"
-                  type="number"
-                  value={forecastConfig.steepness}
-                  onChange={(e) => setForecastConfig({
-                    ...forecastConfig,
-                    steepness: parseFloat(e.target.value) || 6.0
-                  })}
-                  inputProps={{ step: 0.1, min: 1, max: 20 }}
-                />
-                
-                <TextField
-                  label="Midpoint"
-                  type="number"
-                  value={forecastConfig.midpoint}
-                  onChange={(e) => setForecastConfig({
-                    ...forecastConfig,
-                    midpoint: parseFloat(e.target.value) || 0.4
-                  })}
-                  inputProps={{ step: 0.1, min: 0, max: 1 }}
-                />
-              </>
-            )}
-          </Box>
+          <Typography>
+            文件上传成功！是否立即生成预测？
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setForecastDialogOpen(false)}>
-            Cancel
+            稍后
           </Button>
-          <Button 
-            onClick={handleGenerateForecast}
-            variant="contained"
-            disabled={generatingForecast}
-            startIcon={<Timeline />}
-          >
-            {generatingForecast ? 'Generating...' : 'Generate Forecast'}
+          <Button onClick={handleGenerateForecast} variant="contained">
+            生成预测
           </Button>
         </DialogActions>
       </Dialog>

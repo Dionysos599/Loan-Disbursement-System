@@ -137,8 +137,10 @@ public class CsvProcessingService {
         // 计算项目开始日期（使用验证过的算法）
         LocalDate projectStartDate = calculateProjectStartDate(percentOfCompletion / 100.0, forecastStartDate, extendedDate);
         
-        // 计算预测结束日期
-        LocalDate forecastEndDate = extendedDate.plusDays(180).withDayOfMonth(1).plusMonths(1);
+        // 计算预测结束日期 - 6个月后清零
+        LocalDate cutoffDate = extendedDate.plusMonths(6);
+        // 预测应该继续到cutoff date之后的下一个月初，以确保包含所有应该为0的月份
+        LocalDate forecastEndDate = cutoffDate.withDayOfMonth(1).plusMonths(1);
         
         // 生成月度预测
         Map<String, BigDecimal> monthlyForecasts = new HashMap<>();
@@ -147,14 +149,16 @@ public class CsvProcessingService {
         int forecastMonths = 0;
         
         while (!currentDate.isAfter(forecastEndDate)) {
-            BigDecimal forecastOutstandingBalance = calculateForecastOutstandingBalance(
-                outstandingBalance, undisbursedAmount, percentOfCompletion / 100.0,
-                projectStartDate, currentDate, extendedDate
-            );
+            BigDecimal forecastOutstandingBalance;
             
-            // 如果当前日期在Extended Date + 180天之后，预测值为0
-            if (currentDate.isAfter(extendedDate.plusDays(180))) {
+            // 如果当前日期在Extended Date + 180天之前的那个月或之后，预测值为0
+            if (currentDate.isAfter(cutoffDate.withDayOfMonth(1).minusMonths(1))) {
                 forecastOutstandingBalance = BigDecimal.ZERO;
+            } else {
+                forecastOutstandingBalance = calculateForecastOutstandingBalance(
+                    outstandingBalance, undisbursedAmount, percentOfCompletion / 100.0,
+                    projectStartDate, currentDate, extendedDate
+                );
             }
             
             monthlyForecasts.put(currentDate.toString(), forecastOutstandingBalance.setScale(2, RoundingMode.HALF_UP));

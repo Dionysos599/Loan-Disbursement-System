@@ -6,7 +6,7 @@ spring:
     name: forecasting-service
   
   datasource:
-    url: jdbc:postgresql://localhost:5433/loan_disbursement
+    url: jdbc:postgresql://localhost:5432/loan_disbursement
     username: postgres
     password: password
     driver-class-name: org.postgresql.Driver
