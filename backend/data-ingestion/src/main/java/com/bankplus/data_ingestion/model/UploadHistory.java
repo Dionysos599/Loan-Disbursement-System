@@ -58,4 +58,7 @@ public class UploadHistory {
     
     @Column(name = "forecast_csv_path")
     private String forecastCsvPath;
+
+    @Column(name = "original_file_path")
+    private String originalFilePath;
 } 

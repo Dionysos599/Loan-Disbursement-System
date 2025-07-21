@@ -59,6 +59,12 @@ export const dataIngestionAPI = {
     const response = await api.get('/data-ingestion/health');
     return response.data;
   },
+  
+  // Download original uploaded file
+  downloadOriginalFile: (batchId: string) => {
+    // 直接返回下载URL，前端可用window.open或a标签下载
+    return `${API_BASE_URL}/data-ingestion/download/${batchId}`;
+  },
 };
 
 // Forecast service related interfaces

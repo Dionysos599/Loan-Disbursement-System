@@ -48,6 +48,15 @@ public class DataIngestionController {
                 .build();
         
         try {
+            // 保存原始文件到本地磁盘（用流拷贝，兼容所有环境）
+            String inputDir = new java.io.File("backend/data/Input/").getAbsoluteFile().toString();
+            java.nio.file.Files.createDirectories(java.nio.file.Paths.get(inputDir));
+            String savedFileName = batchId + "_" + file.getOriginalFilename();
+            java.nio.file.Path savedFilePath = java.nio.file.Paths.get(inputDir, savedFileName);
+            try (java.io.InputStream in = file.getInputStream()) {
+                java.nio.file.Files.copy(in, savedFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+            uploadHistory.setOriginalFilePath(savedFilePath.toString());
             uploadHistoryRepository.save(uploadHistory);
             
             List<CsvLoanData> loanDataList = csvProcessingService.processCsvFile(file);
@@ -127,16 +136,32 @@ public class DataIngestionController {
             UploadHistory uploadHistory = uploadHistoryRepository.findByBatchId(batchId)
                     .orElseThrow(() -> new RuntimeException("Upload history not found"));
             
-            // TODO: 实际删除文件系统中的文件
-            // Files.deleteIfExists(Paths.get(uploadHistory.getOutputCsvPath()));
-            // Files.deleteIfExists(Paths.get(uploadHistory.getForecastCsvPath()));
+            // 删除相关文件
+            deleteFileIfExists(uploadHistory.getOriginalFilePath(), "原始文件");
+            deleteFileIfExists(uploadHistory.getOutputCsvPath(), "输出CSV文件");
+            deleteFileIfExists(uploadHistory.getForecastCsvPath(), "预测CSV文件");
             
             uploadHistoryRepository.delete(uploadHistory);
-            log.info("Deleted upload history: {}", batchId);
+            log.info("Deleted upload history and related files: {}", batchId);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Error deleting upload history: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    private void deleteFileIfExists(String filePath, String fileType) {
+        if (filePath != null && !filePath.trim().isEmpty()) {
+            try {
+                java.nio.file.Path path = java.nio.file.Paths.get(filePath);
+                if (java.nio.file.Files.deleteIfExists(path)) {
+                    log.info("已删除{}: {}", fileType, filePath);
+                } else {
+                    log.warn("{}不存在，跳过删除: {}", fileType, filePath);
+                }
+            } catch (Exception e) {
+                log.error("删除{}失败: {}, 错误: {}", fileType, filePath, e.getMessage());
+            }
         }
     }
     
@@ -150,6 +175,22 @@ public class DataIngestionController {
             log.error("Error fetching forecast data for batch {}: {}", batchId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @GetMapping("/download/{batchId}")
+    public ResponseEntity<?> downloadOriginalFile(@PathVariable String batchId) {
+        UploadHistory history = uploadHistoryRepository.findByBatchId(batchId).orElse(null);
+        if (history == null || history.getOriginalFilePath() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        java.nio.file.Path filePath = java.nio.file.Paths.get(history.getOriginalFilePath());
+        if (!java.nio.file.Files.exists(filePath)) {
+            return ResponseEntity.notFound().build();
+        }
+        org.springframework.core.io.Resource resource = new org.springframework.core.io.FileSystemResource(filePath);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + history.getOriginalFilename() + "\"")
+                .body(resource);
     }
 
     @GetMapping("/health")

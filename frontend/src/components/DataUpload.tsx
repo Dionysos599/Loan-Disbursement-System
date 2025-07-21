@@ -23,7 +23,7 @@ import {
   Chip,
   Divider,
 } from '@mui/material';
-import { CloudUpload, TrendingUp, Assessment, Delete, Refresh } from '@mui/icons-material';
+import { CloudUpload, TrendingUp, Assessment, Delete, Refresh, Download } from '@mui/icons-material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -323,9 +323,23 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
                         <TableCell>{dayjs(history.uploadedAt).format('YYYY-MM-DD HH:mm')}</TableCell>
                         <TableCell>
                           <IconButton
+                            aria-label="download"
+                            color="primary"
+                            onClick={() => {
+                              const url = dataIngestionAPI.downloadOriginalFile(history.batchId);
+                              window.open(url, '_blank');
+                            }}
+                            size="small"
+                            title="Download original file"
+                          >
+                            <Download />
+                          </IconButton>
+                          <IconButton
+                            aria-label="delete"
                             color="error"
                             onClick={() => handleDeleteHistory(history.batchId)}
                             size="small"
+                            title="Delete history"
                           >
                             <Delete />
                           </IconButton>
