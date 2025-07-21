@@ -7,15 +7,15 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Data upload related interfaces - 核心服务API
-export const dataIngestionAPI = {
+// Loan forecast related interfaces - 核心服务API
+export const loanForecastAPI = {
   // Upload CSV file
   uploadCSV: async (file: File, startMonth: string) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('startMonth', startMonth);
     
-    const response = await api.post('/data-ingestion/upload', formData, {
+    const response = await api.post('/loan-forecast/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -25,44 +25,47 @@ export const dataIngestionAPI = {
   
   // Get upload history list
   getUploadHistory: async () => {
-    const response = await api.get('/data-ingestion/upload-history');
+    const response = await api.get('/loan-forecast/upload-history');
     return response.data;
   },
   
   // Get latest successful upload
   getLatestSuccessfulUpload: async () => {
-    const response = await api.get('/data-ingestion/upload-history/latest');
+    const response = await api.get('/loan-forecast/upload-history/latest');
     return response.data;
   },
   
   // Delete upload history
   deleteUploadHistory: async (batchId: string) => {
-    const response = await api.delete(`/data-ingestion/upload-history/${batchId}`);
+    const response = await api.delete(`/loan-forecast/upload-history/${batchId}`);
     return response.data;
   },
   
   // Get forecast data for specific batch
   getForecastData: async (batchId: string) => {
-    const response = await api.get(`/data-ingestion/upload-history/${batchId}/forecast-data`);
+    const response = await api.get(`/loan-forecast/upload-history/${batchId}/forecast-data`);
     return response.data;
   },
   
   // Get processing status
   getProcessingStatus: async (batchId: string) => {
-    const response = await api.get(`/data-ingestion/status/${batchId}`);
+    const response = await api.get(`/loan-forecast/status/${batchId}`);
     return response.data;
   },
   
   // Health check
   healthCheck: async () => {
-    const response = await api.get('/data-ingestion/health');
+    const response = await api.get('/loan-forecast/health');
     return response.data;
   },
   
   // Download forecast CSV file
-  downloadOriginalFile: (batchId: string) => {
-    return `${API_BASE_URL}/data-ingestion/download/${batchId}`;
+  downloadForecastFile: (batchId: string) => {
+    return `${API_BASE_URL}/loan-forecast/download/${batchId}`;
   },
 };
+
+// 为了向后兼容，保留旧的API名称
+export const dataIngestionAPI = loanForecastAPI;
 
 export default api; 

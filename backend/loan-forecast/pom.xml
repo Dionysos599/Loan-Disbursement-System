@@ -9,10 +9,10 @@
         <relativePath/>
     </parent>
     <groupId>com.bankplus</groupId>
-    <artifactId>data-ingestion</artifactId>
+    <artifactId>loan-forecast</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>data-ingestion</name>
-    <description>Data Ingestion Service for Loan Disbursement System</description>
+    <name>loan-forecast</name>
+    <description>Loan Forecast Service for Loan Disbursement System</description>
     <properties>
         <java.version>17</java.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>

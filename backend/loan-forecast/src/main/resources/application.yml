@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: data-ingestion-service
+    name: loan-forecast-service
   
   autoconfigure:
     exclude:
@@ -11,7 +11,7 @@ spring:
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   
   datasource:
-    url: jdbc:postgresql://postgres:5432/loan_disbursement
+    url: jdbc:postgresql://postgres:5432/loan_forecast
     username: loan_user
     password: loan_password
     driver-class-name: org.postgresql.Driver

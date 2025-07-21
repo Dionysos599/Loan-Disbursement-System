@@ -1,19 +1,19 @@
-package com.bankplus.data_ingestion.model;
+package com.bankplus.loan_forecast.model;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "upload_history")
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class UploadHistory {
     
     @Id
@@ -23,11 +23,14 @@ public class UploadHistory {
     @Column(name = "batch_id", unique = true, nullable = false)
     private String batchId;
     
-    @Column(name = "original_filename", nullable = false)
+    @Column(name = "original_filename")
     private String originalFilename;
     
     @Column(name = "file_size")
     private Long fileSize;
+    
+    @Column(name = "upload_status")
+    private String uploadStatus; // PROCESSING, SUCCESS, FAILED
     
     @Column(name = "total_records")
     private Integer totalRecords;
@@ -38,27 +41,21 @@ public class UploadHistory {
     @Column(name = "failed_records")
     private Integer failedRecords;
     
-    @Column(name = "upload_status", nullable = false)
-    private String uploadStatus; // SUCCESS, FAILED, PROCESSING
-    
-    @Column(name = "forecast_start_date")
-    private String forecastStartDate;
-    
-    @Column(name = "uploaded_at", nullable = false)
+    @Column(name = "uploaded_at")
     private LocalDateTime uploadedAt;
     
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
     
-    @Column(name = "error_message", columnDefinition = "TEXT")
+    @Column(name = "forecast_start_date")
+    private String forecastStartDate;
+    
+    @Column(name = "error_message", length = 1000)
     private String errorMessage;
     
-    @Column(name = "output_csv_path")
-    private String outputCsvPath;
+    @Column(name = "original_file_path")
+    private String originalFilePath;
     
     @Column(name = "forecast_csv_path")
     private String forecastCsvPath;
-
-    @Column(name = "original_file_path")
-    private String originalFilePath;
 } 

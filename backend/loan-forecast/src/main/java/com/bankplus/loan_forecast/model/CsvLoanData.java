@@ -1,4 +1,4 @@
-package com.bankplus.data_ingestion.model;
+package com.bankplus.loan_forecast.model;
 
 import com.opencsv.bean.CsvBindByName;
 import lombok.Data;

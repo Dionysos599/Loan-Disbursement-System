@@ -1,8 +1,8 @@
 #!/bin/bash
 
-echo "🧪 Comprehensive Loan Disbursement System Test"
-echo "=============================================="
-echo "ℹ️  系统已简化为单核心服务架构 (data-ingestion-service)"
+echo "�� Comprehensive Loan Forecast System Test"
+echo "=========================================="
+echo "ℹ️  系统已简化为单核心服务架构 (loan-forecast-service)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -74,14 +74,14 @@ fi
 
 # Test core backend service (runtime)
 echo -e "\n${BLUE}Testing Core Backend Service (Runtime):${NC}"
-test_endpoint "http://localhost:8081/actuator/health" "Data Ingestion Service (Core)"
+test_endpoint "http://localhost:8081/actuator/health" "Loan Forecast Service (Core)"
 
 # Test backend compilation
 echo -e "\n${BLUE}Testing Backend Compilation:${NC}"
 
-# Test data-ingestion compilation
-echo -n "Data Ingestion Service Compilation... "
-if cd backend/data-ingestion && mvn clean compile -q > /dev/null 2>&1; then
+# Test loan-forecast compilation
+echo -n "Loan Forecast Service Compilation... "
+if cd backend/loan-forecast && mvn clean compile -q > /dev/null 2>&1; then
     echo -e "${GREEN}✓ PASS${NC}"
     cd - > /dev/null
 else
@@ -115,16 +115,16 @@ fi
 
 # Check container status
 echo -e "\n${BLUE}Container Status:${NC}"
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep loan- || echo "No loan containers running"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep loan-forecast || echo "No loan-forecast containers running"
 
 # Test key API endpoints
 echo -e "\n${BLUE}Testing Key API Endpoints:${NC}"
-test_endpoint "http://localhost:8081/api/data-ingestion/upload-history" "Upload History API"
-test_endpoint "http://localhost:8081/api/data-ingestion/upload-history/latest" "Latest Upload API"
+test_endpoint "http://localhost:8081/api/loan-forecast/upload-history" "Upload History API"
+test_endpoint "http://localhost:8081/api/loan-forecast/upload-history/latest" "Latest Upload API"
 
 echo -e "\n${GREEN}✅ Comprehensive System Test Complete!${NC}"
 echo -e "\n${YELLOW}Simplified System Architecture:${NC}"
-echo "Core Service: http://localhost:8081 (Data Ingestion + Forecasting)"
+echo "Core Service: http://localhost:8081 (Loan Forecast Service)"
 echo "Frontend: http://localhost:3000"
 echo "PostgreSQL: localhost:5432"
 echo "Redis: localhost:6379"
@@ -132,7 +132,7 @@ echo "Redis: localhost:6379"
 echo -e "\n${YELLOW}Quick Commands:${NC}"
 echo "Restart Backend: ./reload-backend.sh"
 echo "Start Frontend: cd frontend && npm start"
-echo "View Logs: docker-compose -f docker/docker-compose.yml logs -f data-ingestion-service"
+echo "View Logs: docker-compose -f docker/docker-compose.yml logs -f loan-forecast-service"
 
 # Cleanup
 rm -f /tmp/response.json /tmp/upload_response.json 

@@ -1,4 +1,4 @@
-package com.bankplus.data_ingestion.dto;
+package com.bankplus.loan_forecast.dto;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

@@ -1,7 +1,7 @@
-package com.bankplus.data_ingestion.service;
+package com.bankplus.loan_forecast.service;
 
-import com.bankplus.data_ingestion.dto.LoanForecastData;
-import com.bankplus.data_ingestion.model.CsvLoanData;
+import com.bankplus.loan_forecast.dto.LoanForecastData;
+import com.bankplus.loan_forecast.model.CsvLoanData;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.bean.CsvToBean;

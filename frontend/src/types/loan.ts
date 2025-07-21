@@ -4,7 +4,10 @@ export interface LoanForecastData {
   loanNumber: string;
   customerName: string;
   loanAmount: number;
+  propertyType?: string;
+  city?: string;
   forecastData: Record<string, number>;
+  totalForecastedAmount?: number;
   scenarioName?: string;
 }
 

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-echo "🏗️  Building Simplified Loan Disbursement System"
-echo "================================================"
-echo "ℹ️  Architecture: Single Core Service (data-ingestion-service)"
+echo "🏗️  Building Simplified Loan Forecast System"
+echo "============================================="
+echo "ℹ️  Architecture: Single Core Service (loan-forecast-service)"
 echo ""
 
 # Colors for output
@@ -22,8 +22,8 @@ check_success() {
 }
 
 # Build backend service
-echo "📦 Building Core Backend Service (data-ingestion)..."
-cd backend/data-ingestion
+echo "📦 Building Core Backend Service (loan-forecast)..."
+cd backend/loan-forecast
 mvn clean package -DskipTests
 check_success
 cd ../..
@@ -48,7 +48,11 @@ echo "🧪 To test the system:"
 echo "  ./test-system.sh"
 echo ""
 echo "📋 System Architecture:"
-echo "  • Core Service: data-ingestion-service (Port 8081)"
+echo "  • Core Service: loan-forecast-service (Port 8081)"
 echo "  • Frontend: React App (Port 3000)"
 echo "  • Database: PostgreSQL (Port 5432)"
 echo "  • Cache: Redis (Port 6379)"
+
+cd docker
+docker-compose up -d
+cd ..

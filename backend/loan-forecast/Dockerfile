@@ -2,7 +2,7 @@ FROM openjdk:17-jdk-slim
 
 WORKDIR /app
 
-COPY target/data-ingestion-0.0.1-SNAPSHOT.jar app.jar
+COPY target/loan-forecast-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8081
 

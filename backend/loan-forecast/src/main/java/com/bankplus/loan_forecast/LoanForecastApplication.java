@@ -1,4 +1,4 @@
-package com.bankplus.data_ingestion;
+package com.bankplus.loan_forecast;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,15 +9,15 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-@EnableJpaRepositories(basePackages = "com.bankplus.data_ingestion.repository")
-public class DataIngestionApplication {
+@EnableJpaRepositories(basePackages = "com.bankplus.loan_forecast.repository")
+public class LoanForecastApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(DataIngestionApplication.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(LoanForecastApplication.class, args);
+	}
 
-    @Bean
-    public WebClient.Builder webClientBuilder() {
-        return WebClient.builder();
-    }
+	@Bean
+	public WebClient.Builder webClientBuilder() {
+		return WebClient.builder();
+	}
 } 
