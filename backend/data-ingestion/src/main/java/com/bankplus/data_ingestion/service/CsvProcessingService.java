@@ -7,11 +7,8 @@ import com.opencsv.CSVWriter;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -28,12 +25,6 @@ import java.util.Locale;
 @Service
 @Slf4j
 public class CsvProcessingService {
-
-    @Autowired
-    private WebClient.Builder webClientBuilder;
-
-    @Value("${forecasting.service.url:http://localhost:8082}")
-    private String forecastingServiceUrl;
 
     public List<CsvLoanData> processCsvFile(MultipartFile file) throws IOException {
         log.info("Processing CSV file: {}", file.getOriginalFilename());
@@ -68,15 +59,15 @@ public class CsvProcessingService {
     }
 
     /**
-     * 调用Forecasting Service生成预测数据
+     * 生成预测数据（使用本地算法）
      */
     public List<LoanForecastData> convertToLoanForecastData(List<CsvLoanData> csvDataList, String startMonthStr) {
-        log.info("Converting {} CSV records to forecast data by calling Forecasting Service", csvDataList.size());
+        log.info("Converting {} CSV records to forecast data using local algorithms", csvDataList.size());
         
         try {
             LocalDate forecastStartDate = LocalDate.parse(startMonthStr);
             
-            // 转换CSV数据为Forecasting Service可以处理的格式
+            // 转换CSV数据为内部处理格式
             List<Map<String, Object>> loanDataList = new ArrayList<>();
             for (CsvLoanData csvData : csvDataList) {
                 Map<String, Object> loanData = convertCsvToMap(csvData);
@@ -85,7 +76,7 @@ public class CsvProcessingService {
                 }
             }
             
-            // 暂时使用本地计算代替Forecasting Service调用
+            // 使用本地算法计算预测
             List<Map<String, Object>> loanForecasts = calculateForecastsLocally(loanDataList, forecastStartDate);
             
             List<LoanForecastData> result = new ArrayList<>();
@@ -100,13 +91,13 @@ public class CsvProcessingService {
             return result;
             
         } catch (Exception e) {
-            log.error("Error calling Forecasting Service: {}", e.getMessage(), e);
+            log.error("Error generating forecast data: {}", e.getMessage(), e);
             return new ArrayList<>();
         }
     }
     
     /**
-     * 本地计算预测数据（暂时代替Forecasting Service）
+     * 本地计算预测数据
      */
     private List<Map<String, Object>> calculateForecastsLocally(List<Map<String, Object>> loanDataList, LocalDate forecastStartDate) {
         List<Map<String, Object>> results = new ArrayList<>();

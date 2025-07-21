@@ -1,8 +1,8 @@
 #!/bin/bash
 
 echo "🔄 重新部署核心后端服务 (data-ingestion)..."
-echo "ℹ️  注意：只需要重新构建 data-ingestion-service"
-echo "ℹ️  其他服务 (disbursement, forecasting) 目前未被前端使用"
+echo "ℹ️  系统已简化：只有一个核心服务 data-ingestion-service"
+echo "ℹ️  该服务包含：文件上传、数据处理、预测算法、历史管理"
 
 # 编译后端
 echo "📦 编译 data-ingestion 服务..."
@@ -26,9 +26,11 @@ if [ $? -eq 0 ]; then
     echo "🧪 运行系统测试："
     echo "./test-system.sh"
     echo ""
-    echo "💡 提示："
-    echo "- 只有 data-ingestion-service 被重新部署"
-    echo "- disbursement-service 和 forecasting-service 保持运行但未被使用"
+    echo "💡 简化后的系统架构："
+    echo "- 核心服务: data-ingestion-service (端口 8081)"
+    echo "- 功能包含: 文件上传 + 数据处理 + 预测算法 + 历史管理"
+    echo "- 前端: React (端口 3000)"
+    echo "- 基础设施: PostgreSQL (5432) + Redis (6379)"
 else
     echo "❌ Docker 部署失败！"
     exit 1

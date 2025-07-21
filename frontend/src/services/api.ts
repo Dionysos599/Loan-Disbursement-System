@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { Loan, CalculateScheduleRequest, UpdateProgressRequest, ExtendMaturityRequest, PortfolioExposure } from '../types/loan';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
 
@@ -8,7 +7,7 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Data upload related interfaces
+// Data upload related interfaces - 核心服务API
 export const dataIngestionAPI = {
   // Upload CSV file
   uploadCSV: async (file: File, startMonth: string) => {
@@ -60,58 +59,9 @@ export const dataIngestionAPI = {
     return response.data;
   },
   
-  // Download original uploaded file
+  // Download forecast CSV file
   downloadOriginalFile: (batchId: string) => {
-    // 直接返回下载URL，前端可用window.open或a标签下载
     return `${API_BASE_URL}/data-ingestion/download/${batchId}`;
-  },
-};
-
-// Forecast service related interfaces
-export const forecastingAPI = {
-  // Generate forecast
-  generateForecast: async (data: any) => {
-    const response = await api.post('/forecasting/forecast', data);
-    return response.data;
-  },
-  
-  // Health check
-  healthCheck: async () => {
-    const response = await api.get('/forecasting/health');
-    return response.data;
-  },
-};
-
-// Loan management related interfaces
-export const loanAPI = {
-  // Get loan list
-  getLoans: async () => {
-    const response = await api.get('/loans');
-    return response.data;
-  },
-  
-  // Get single loan details
-  getLoanDetails: async (loanId: string) => {
-    const response = await api.get(`/loans/${loanId}`);
-    return response.data;
-  },
-  
-  // Update loan progress
-  updateLoanProgress: async (loanId: string, progressData: any) => {
-    const response = await api.put(`/loans/${loanId}/progress`, progressData);
-    return response.data;
-  },
-  
-  // Calculate repayment schedule
-  calculateSchedule: async (loanId: string, scheduleData: any) => {
-    const response = await api.post(`/loans/${loanId}/calculate-schedule`, scheduleData);
-    return response.data;
-  },
-  
-  // Get portfolio risk exposure
-  getPortfolioExposure: async () => {
-    const response = await api.get('/portfolio/exposure');
-    return response.data;
   },
 };
 
