@@ -11,9 +11,7 @@ function App() {
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
-    if (page !== 'forecast') {
-      setForecastData(null);
-    }
+    // 不再清空forecastData，保持数据持久性
   };
 
   const handleForecastGenerated = (data: any) => {
@@ -28,10 +26,11 @@ function App() {
       case 'upload':
         return <DataUpload onForecastGenerated={handleForecastGenerated} />;
       case 'forecast':
-        return forecastData ? (
-          <ForecastVisualization forecastData={forecastData} />
-        ) : (
-          <Alert severity="warning">No forecast data available. Please upload data first.</Alert>
+        return (
+          <ForecastVisualization 
+            forecastData={forecastData} 
+            onForecastDataLoaded={setForecastData}
+          />
         );
       default:
         return <PortfolioDashboard forecastData={forecastData} />;

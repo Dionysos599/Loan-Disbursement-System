@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.Locale;
 
 @Service
 @Slf4j
@@ -46,6 +47,23 @@ public class CsvProcessingService {
             List<CsvLoanData> loanDataList = csvToBean.parse();
             log.info("Successfully parsed {} loan records from CSV", loanDataList.size());
             return loanDataList;
+        }
+    }
+
+    public List<LoanForecastData> processCsvFileFromPath(String filePath, String startMonth) throws IOException {
+        log.info("Processing CSV file from path: {}", filePath);
+        
+        try (Reader reader = new FileReader(filePath)) {
+            CsvToBean<CsvLoanData> csvToBean = new CsvToBeanBuilder<CsvLoanData>(reader)
+                    .withType(CsvLoanData.class)
+                    .withIgnoreLeadingWhiteSpace(true)
+                    .build();
+            
+            List<CsvLoanData> loanDataList = csvToBean.parse();
+            log.info("Successfully parsed {} loan records from CSV file", loanDataList.size());
+            
+            // 转换为预测数据
+            return convertToLoanForecastData(loanDataList, startMonth);
         }
     }
 
@@ -134,6 +152,8 @@ public class CsvProcessingService {
             return null;
         }
         
+        log.debug("Loan {} passed validation, generating forecasts...", loanNumber);
+        
         // 计算项目开始日期（使用验证过的算法）
         LocalDate projectStartDate = calculateProjectStartDate(percentOfCompletion / 100.0, forecastStartDate, extendedDate);
         
@@ -161,7 +181,10 @@ public class CsvProcessingService {
                 );
             }
             
-            monthlyForecasts.put(currentDate.toString(), forecastOutstandingBalance.setScale(2, RoundingMode.HALF_UP));
+            // 转换日期格式为CSV表头兼容的格式 (如 Nov-24)
+            String monthKey = currentDate.format(DateTimeFormatter.ofPattern("MMM-yy", Locale.ENGLISH));
+            log.debug("Generating forecast for month: {} (currentDate: {})", monthKey, currentDate);
+            monthlyForecasts.put(monthKey, forecastOutstandingBalance.setScale(2, RoundingMode.HALF_UP));
             totalForecastedAmount = totalForecastedAmount.add(forecastOutstandingBalance);
             forecastMonths++;
             
@@ -516,6 +539,64 @@ public class CsvProcessingService {
             log.info("Forecast CSV generated successfully: {}", filePath);
         } catch (Exception e) {
             log.error("Failed to generate forecast CSV: {}", e.getMessage());
+        }
+    }
+    
+    // 生成自定义格式的forecast CSV，表头与原始csv一致，后面追加预测数据
+    public String generateForecastCsvWithOriginalFormat(List<CsvLoanData> originalList, List<LoanForecastData> forecastList, String inputFileName) {
+        String forecastDir = "backend/data/forecast/";
+        try {
+            Files.createDirectories(Paths.get(forecastDir));
+            String baseName = inputFileName.replaceAll("\\.[^.]*$", "");
+            String outputFileName = baseName + "_forecast.csv";
+            String filePath = forecastDir + outputFileName;
+
+            try (CSVWriter writer = new CSVWriter(new FileWriter(filePath))) {
+                // 写表头
+                String[] headers = new String[] {
+                    "Loan Number","Customer Name","Loan Amount","Maturity Date","Extended Date","Property Type","Job Address","City","LTC Ratio","LTV Ratio","Land Draw","Interest Rate","Outstanding Balance","Undisbursed Amount","% of Loan Drawn","% of Completion",
+                    "Nov-24","Dec-24","Jan-25","Feb-25","Mar-25","Apr-25","May-25","Jun-25","Jul-25","Aug-25","Sep-25","Oct-25","Nov-25","Dec-25","Jan-26","Feb-26","Mar-26","Apr-26","May-26","Jun-26","Jul-26","Aug-26","Sep-26","Oct-26","Nov-26","Dec-26","Jan-27","Feb-27","Mar-27","Apr-27","May-27","Jun-27"
+                };
+                writer.writeNext(headers);
+
+                // 写每一行
+                for (int i = 0; i < originalList.size(); i++) {
+                    CsvLoanData orig = originalList.get(i);
+                    LoanForecastData forecast = (forecastList != null && forecastList.size() > i) ? forecastList.get(i) : null;
+                    java.util.List<String> row = new java.util.ArrayList<>();
+                    row.add(orig.getLoanNumber());
+                    row.add(orig.getCustomerName());
+                    row.add(orig.getLoanAmount());
+                    row.add(orig.getMaturityDate());
+                    row.add(orig.getExtendedDate());
+                    row.add(orig.getPropertyType());
+                    row.add(orig.getJobAddress());
+                    row.add(orig.getCity());
+                    row.add(orig.getLtcRatio());
+                    row.add(orig.getLtvRatio());
+                    row.add(orig.getLandDraw());
+                    row.add(orig.getInterestRate());
+                    row.add(orig.getOutstandingBalance());
+                    row.add(orig.getUndisbursedAmount());
+                    row.add(orig.getPercentOfLoanDrawn());
+                    row.add(orig.getPercentOfCompletion());
+                    // 追加forecast数据
+                    String[] months = {"Nov-24","Dec-24","Jan-25","Feb-25","Mar-25","Apr-25","May-25","Jun-25","Jul-25","Aug-25","Sep-25","Oct-25","Nov-25","Dec-25","Jan-26","Feb-26","Mar-26","Apr-26","May-26","Jun-26","Jul-26","Aug-26","Sep-26","Oct-26","Nov-26","Dec-26","Jan-27","Feb-27","Mar-27","Apr-27","May-27","Jun-27"};
+                    for (String m : months) {
+                        if (forecast != null && forecast.getForecastData() != null && forecast.getForecastData().containsKey(m)) {
+                            row.add(forecast.getForecastData().get(m) != null ? forecast.getForecastData().get(m).toString() : "");
+                        } else {
+                            row.add("");
+                        }
+                    }
+                    writer.writeNext(row.toArray(new String[0]));
+                }
+            }
+            log.info("Custom forecast CSV generated: {}", filePath);
+            return filePath;
+        } catch (Exception e) {
+            log.error("Failed to generate custom forecast CSV: {}", e.getMessage());
+            return null;
         }
     }
     

@@ -59,24 +59,21 @@ public class DataIngestionController {
             uploadHistory.setOriginalFilePath(savedFilePath.toString());
             uploadHistoryRepository.save(uploadHistory);
             
+            // 解析原始CSV为对象列表
             List<CsvLoanData> loanDataList = csvProcessingService.processCsvFile(file);
             List<LoanForecastData> forecastDataList = csvProcessingService.convertToLoanForecastData(loanDataList, startMonth);
 
-            // Write forecast results to Output directory (JSON format for frontend)
-            String outputFileName = file.getOriginalFilename().replaceAll("\\.[^.]*$", "") + "_predicted.csv";
-            csvProcessingService.writeForecastToCsv(forecastDataList, outputFileName);
-            
-            // Generate forecast CSV to forecast directory (for consistency)
-            csvProcessingService.generateForecastCsv(forecastDataList, file.getOriginalFilename());
+            // 生成自定义格式的forecast csv
+            String forecastCsvPath = csvProcessingService.generateForecastCsvWithOriginalFormat(loanDataList, forecastDataList, file.getOriginalFilename());
+            uploadHistory.setForecastCsvPath(forecastCsvPath);
+            uploadHistoryRepository.save(uploadHistory);
 
-            // 更新上传历史记录
+            // 更新上传历史记录（其他字段）
             uploadHistory.setTotalRecords(loanDataList.size());
             uploadHistory.setProcessedRecords(forecastDataList.size());
             uploadHistory.setFailedRecords(loanDataList.size() - forecastDataList.size());
             uploadHistory.setUploadStatus("SUCCESS");
             uploadHistory.setProcessedAt(LocalDateTime.now());
-            uploadHistory.setOutputCsvPath("backend/data/Output/" + outputFileName);
-            uploadHistory.setForecastCsvPath("backend/data/forecast/" + file.getOriginalFilename().replaceAll("\\.[^.]*$", "") + "_forecast.csv");
             uploadHistoryRepository.save(uploadHistory);
             
             DataIngestionResponse response = DataIngestionResponse.builder()
@@ -135,12 +132,9 @@ public class DataIngestionController {
         try {
             UploadHistory uploadHistory = uploadHistoryRepository.findByBatchId(batchId)
                     .orElseThrow(() -> new RuntimeException("Upload history not found"));
-            
-            // 删除相关文件
+            // 只删除forecast csv和原始文件
             deleteFileIfExists(uploadHistory.getOriginalFilePath(), "原始文件");
-            deleteFileIfExists(uploadHistory.getOutputCsvPath(), "输出CSV文件");
             deleteFileIfExists(uploadHistory.getForecastCsvPath(), "预测CSV文件");
-            
             uploadHistoryRepository.delete(uploadHistory);
             log.info("Deleted upload history and related files: {}", batchId);
             return ResponseEntity.ok().build();
@@ -168,9 +162,22 @@ public class DataIngestionController {
     @GetMapping("/upload-history/{batchId}/forecast-data")
     public ResponseEntity<List<LoanForecastData>> getForecastData(@PathVariable String batchId) {
         try {
-            // TODO: 实现从存储中加载预测数据的逻辑
-            // 目前返回空列表，实际应该从数据库或文件中加载
-            return ResponseEntity.ok(List.of());
+            UploadHistory uploadHistory = uploadHistoryRepository.findByBatchId(batchId)
+                    .orElseThrow(() -> new RuntimeException("Upload history not found"));
+            
+            // 从保存的原始文件重新生成预测数据
+            if (uploadHistory.getOriginalFilePath() != null && java.nio.file.Files.exists(java.nio.file.Paths.get(uploadHistory.getOriginalFilePath()))) {
+                // 直接从文件路径处理CSV
+                List<LoanForecastData> forecastDataList = csvProcessingService.processCsvFileFromPath(
+                    uploadHistory.getOriginalFilePath(), 
+                    uploadHistory.getForecastStartDate()
+                );
+                
+                return ResponseEntity.ok(forecastDataList);
+            } else {
+                log.warn("Original file not found for batch {}", batchId);
+                return ResponseEntity.ok(List.of());
+            }
         } catch (Exception e) {
             log.error("Error fetching forecast data for batch {}: {}", batchId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -178,18 +185,18 @@ public class DataIngestionController {
     }
 
     @GetMapping("/download/{batchId}")
-    public ResponseEntity<?> downloadOriginalFile(@PathVariable String batchId) {
+    public ResponseEntity<?> downloadForecastFile(@PathVariable String batchId) {
         UploadHistory history = uploadHistoryRepository.findByBatchId(batchId).orElse(null);
-        if (history == null || history.getOriginalFilePath() == null) {
+        if (history == null || history.getForecastCsvPath() == null) {
             return ResponseEntity.notFound().build();
         }
-        java.nio.file.Path filePath = java.nio.file.Paths.get(history.getOriginalFilePath());
+        java.nio.file.Path filePath = java.nio.file.Paths.get(history.getForecastCsvPath());
         if (!java.nio.file.Files.exists(filePath)) {
             return ResponseEntity.notFound().build();
         }
         org.springframework.core.io.Resource resource = new org.springframework.core.io.FileSystemResource(filePath);
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=\"" + history.getOriginalFilename() + "\"")
+                .header("Content-Disposition", "attachment; filename=\"" + (history.getOriginalFilename().replaceAll("\\.[^.]*$", "_forecast.csv")) + "\"")
                 .body(resource);
     }
 

@@ -79,3 +79,4 @@ show_status
 echo ""
 print_success "Build process completed!"
 print_info "Frontend is running on http://localhost:3000"
+echo ""

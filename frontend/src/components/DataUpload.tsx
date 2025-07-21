@@ -121,7 +121,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
                 monthlyAmount: amount, // TODO: calculate monthly increment
                 percentComplete: 0,
                 forecastType: 'S-curve',
-                scenarioName: loan.customerName || 'Unknown',
+                scenarioName: loan.loanNumber || 'Unknown',
                 confidenceLevel: 0.85,
               }))
             ),
@@ -197,7 +197,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
   return (
     <Box sx={{ maxWidth: 1200, margin: '0 auto', p: 3 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        数据上传与预测
+        Data Upload and Forecast Generation
       </Typography>
 
       {/* File upload area */}
