@@ -1,18 +1,18 @@
-# 停止所有服务
+# Stop all services
 docker-compose down
 
-# 重启服务
+# Restart services
 docker-compose restart
 
-# 查看日志
+# View logs
 docker-compose logs -f
 
-# 进入PostgreSQL容器
+# Enter PostgreSQL container
 docker exec -it loan-postgres psql -U loan_app -d loan_disbursement
 
-# 验证表格内容
+# Verify table content
 docker exec -it loan-postgres psql -U loan_app -d loan_disbursement -c "\d <table>"
 
-# 清理并重新构建
+# Clean and rebuild
 docker-compose down -v
 docker-compose up -d --build

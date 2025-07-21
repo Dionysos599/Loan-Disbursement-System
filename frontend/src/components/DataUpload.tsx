@@ -59,7 +59,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
   const [uploadHistory, setUploadHistory] = useState<UploadHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // 加载上传历史
+  // Upload history
   const loadUploadHistory = async () => {
     setLoadingHistory(true);
     try {
@@ -101,10 +101,10 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
         setUploadStatus(`Upload successful! Processed ${result.processedRecords} records.`);
         setBatchId(result.batchId);
         
-        // 重新加载上传历史
+        // reload upload history
         loadUploadHistory();
         
-        // 生成前端显示的数据结构
+        // generate forecast data for frontend
         if (result.loanForecasts && result.loanForecasts.length > 0) {
           const forecastData = {
             batchId: result.batchId,
@@ -118,7 +118,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
                 loanNumber: loan.loanNumber || 'N/A',
                 date: date,
                 cumulativeAmount: amount,
-                monthlyAmount: amount, // 这里可以计算月度增量
+                monthlyAmount: amount, // TODO: calculate monthly increment
                 percentComplete: 0,
                 forecastType: 'S-curve',
                 scenarioName: loan.customerName || 'Unknown',
@@ -155,7 +155,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
     try {
       await dataIngestionAPI.deleteUploadHistory(batchId);
       setUploadStatus('Upload history deleted successfully');
-      loadUploadHistory(); // 重新加载列表
+      loadUploadHistory(); // reload list
     } catch (error) {
       console.error('Failed to delete upload history:', error);
       setUploadStatus('Failed to delete upload history');
@@ -200,12 +200,12 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
         数据上传与预测
       </Typography>
 
-      {/* 文件上传区域 */}
+      {/* File upload area */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
             <CloudUpload sx={{ mr: 1 }} />
-            上传CSV文件
+            Upload CSV file
           </Typography>
 
           <Box sx={{ mb: 3 }}>
@@ -223,7 +223,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
                 startIcon={<CloudUpload />}
                 sx={{ mr: 2 }}
               >
-                选择CSV文件
+                Select CSV file
               </Button>
             </label>
 
@@ -237,7 +237,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
           <Box sx={{ mb: 3 }}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
-                label="预测开始月份"
+                label="Forecast start month"
                 value={startMonth}
                 onChange={(newValue) => setStartMonth(newValue || dayjs())}
                 views={['year', 'month']}
@@ -253,7 +253,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
             startIcon={<TrendingUp />}
             sx={{ mb: 2 }}
           >
-            {uploading ? '上传中...' : '上传并生成预测'}
+            {uploading ? 'Uploading...' : 'Upload and generate forecast'}
           </Button>
 
           {uploading && <LinearProgress sx={{ mb: 2 }} />}
@@ -269,13 +269,13 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
         </CardContent>
       </Card>
 
-      {/* 上传历史区域 */}
+      {/* Upload history area */}
       <Card>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
               <Assessment sx={{ mr: 1 }} />
-              上传历史
+              Upload history
             </Typography>
             <Button
               variant="outlined"
@@ -283,7 +283,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
               onClick={loadUploadHistory}
               disabled={loadingHistory}
             >
-              刷新
+              Refresh
             </Button>
           </Box>
 
@@ -294,21 +294,21 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>文件名</TableCell>
-                    <TableCell>状态</TableCell>
-                    <TableCell>文件大小</TableCell>
-                    <TableCell>总记录数</TableCell>
-                    <TableCell>处理成功</TableCell>
-                    <TableCell>处理失败</TableCell>
-                    <TableCell>上传时间</TableCell>
-                    <TableCell>操作</TableCell>
+                    <TableCell>File name</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>File size</TableCell>
+                    <TableCell>Total records</TableCell>
+                    <TableCell>Processed successfully</TableCell>
+                    <TableCell>Processed failed</TableCell>
+                    <TableCell>Upload time</TableCell>
+                    <TableCell>Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {uploadHistory.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} align="center">
-                        暂无上传记录
+                        No upload history
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -340,20 +340,20 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastGenerated }) => {
         </CardContent>
       </Card>
 
-      {/* 预测生成对话框 */}
+      {/* Forecast generation dialog */}
       <Dialog open={forecastDialogOpen} onClose={() => setForecastDialogOpen(false)}>
-        <DialogTitle>生成预测</DialogTitle>
+        <DialogTitle>Generate forecast</DialogTitle>
         <DialogContent>
           <Typography>
-            文件上传成功！是否立即生成预测？
+            File uploaded successfully! Do you want to generate forecast now?
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setForecastDialogOpen(false)}>
-            稍后
+            Later
           </Button>
           <Button onClick={handleGenerateForecast} variant="contained">
-            生成预测
+            Generate forecast
           </Button>
         </DialogActions>
       </Dialog>

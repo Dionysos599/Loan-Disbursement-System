@@ -2,9 +2,9 @@ package com.bankplus.data_ingestion.controller;
 
 import com.bankplus.data_ingestion.dto.DataIngestionResponse;
 import com.bankplus.data_ingestion.dto.LoanForecastData;
-// import com.bankplus.data_ingestion.model.UploadHistory;
+import com.bankplus.data_ingestion.model.UploadHistory;
 import com.bankplus.data_ingestion.model.CsvLoanData;
-// import com.bankplus.data_ingestion.repository.UploadHistoryRepository;
+import com.bankplus.data_ingestion.repository.UploadHistoryRepository;
 import com.bankplus.data_ingestion.service.CsvProcessingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,8 +25,8 @@ public class DataIngestionController {
     @Autowired
     private CsvProcessingService csvProcessingService;
 
-    // @Autowired
-    // private UploadHistoryRepository uploadHistoryRepository;
+    @Autowired
+    private UploadHistoryRepository uploadHistoryRepository;
 
     @PostMapping("/upload")
     public ResponseEntity<DataIngestionResponse> uploadCsvFile(
@@ -37,18 +37,18 @@ public class DataIngestionController {
         
         String batchId = csvProcessingService.generateBatchId();
         
-        // // 创建上传历史记录
-        // UploadHistory uploadHistory = UploadHistory.builder()
-        //         .batchId(batchId)
-        //         .originalFilename(file.getOriginalFilename())
-        //         .fileSize(file.getSize())
-        //         .uploadStatus("PROCESSING")
-        //         .forecastStartDate(startMonth)
-        //         .uploadedAt(LocalDateTime.now())
-        //         .build();
+        // 创建上传历史记录
+        UploadHistory uploadHistory = UploadHistory.builder()
+                .batchId(batchId)
+                .originalFilename(file.getOriginalFilename())
+                .fileSize(file.getSize())
+                .uploadStatus("PROCESSING")
+                .forecastStartDate(startMonth)
+                .uploadedAt(LocalDateTime.now())
+                .build();
         
         try {
-            // uploadHistoryRepository.save(uploadHistory);
+            uploadHistoryRepository.save(uploadHistory);
             
             List<CsvLoanData> loanDataList = csvProcessingService.processCsvFile(file);
             List<LoanForecastData> forecastDataList = csvProcessingService.convertToLoanForecastData(loanDataList, startMonth);
@@ -60,15 +60,15 @@ public class DataIngestionController {
             // Generate forecast CSV to forecast directory (for consistency)
             csvProcessingService.generateForecastCsv(forecastDataList, file.getOriginalFilename());
 
-            // // 更新上传历史记录
-            // uploadHistory.setTotalRecords(loanDataList.size());
-            // uploadHistory.setProcessedRecords(forecastDataList.size());
-            // uploadHistory.setFailedRecords(loanDataList.size() - forecastDataList.size());
-            // uploadHistory.setUploadStatus("SUCCESS");
-            // uploadHistory.setProcessedAt(LocalDateTime.now());
-            // uploadHistory.setOutputCsvPath("backend/data/Output/" + outputFileName);
-            // uploadHistory.setForecastCsvPath("backend/data/forecast/" + file.getOriginalFilename().replaceAll("\\.[^.]*$", "") + "_forecast.csv");
-            // uploadHistoryRepository.save(uploadHistory);
+            // 更新上传历史记录
+            uploadHistory.setTotalRecords(loanDataList.size());
+            uploadHistory.setProcessedRecords(forecastDataList.size());
+            uploadHistory.setFailedRecords(loanDataList.size() - forecastDataList.size());
+            uploadHistory.setUploadStatus("SUCCESS");
+            uploadHistory.setProcessedAt(LocalDateTime.now());
+            uploadHistory.setOutputCsvPath("backend/data/Output/" + outputFileName);
+            uploadHistory.setForecastCsvPath("backend/data/forecast/" + file.getOriginalFilename().replaceAll("\\.[^.]*$", "") + "_forecast.csv");
+            uploadHistoryRepository.save(uploadHistory);
             
             DataIngestionResponse response = DataIngestionResponse.builder()
                     .batchId(batchId)
@@ -84,11 +84,11 @@ public class DataIngestionController {
         } catch (Exception e) {
             log.error("Error processing CSV upload: {}", e.getMessage(), e);
             
-            // // 更新上传历史记录为失败状态
-            // uploadHistory.setUploadStatus("FAILED");
-            // uploadHistory.setErrorMessage(e.getMessage());
-            // uploadHistory.setProcessedAt(LocalDateTime.now());
-            // uploadHistoryRepository.save(uploadHistory);
+            // 更新上传历史记录为失败状态
+            uploadHistory.setUploadStatus("FAILED");
+            uploadHistory.setErrorMessage(e.getMessage());
+            uploadHistory.setProcessedAt(LocalDateTime.now());
+            uploadHistoryRepository.save(uploadHistory);
             
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(DataIngestionResponse.builder()
@@ -98,59 +98,59 @@ public class DataIngestionController {
         }
     }
 
-    // @GetMapping("/upload-history")
-    // public ResponseEntity<List<UploadHistory>> getUploadHistory() {
-    //     try {
-    //         List<UploadHistory> history = uploadHistoryRepository.findAllOrderByUploadedAtDesc();
-    //         return ResponseEntity.ok(history);
-    //     } catch (Exception e) {
-    //         log.error("Error fetching upload history: {}", e.getMessage(), e);
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    //     }
-    // }
+    @GetMapping("/upload-history")
+    public ResponseEntity<List<UploadHistory>> getUploadHistory() {
+        try {
+            List<UploadHistory> history = uploadHistoryRepository.findAllOrderByUploadedAtDesc();
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            log.error("Error fetching upload history: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
     
-    // @GetMapping("/upload-history/latest")
-    // public ResponseEntity<UploadHistory> getLatestSuccessfulUpload() {
-    //     try {
-    //         return uploadHistoryRepository.findLatestSuccessfulUpload()
-    //                 .map(ResponseEntity::ok)
-    //                 .orElse(ResponseEntity.notFound().build());
-    //     } catch (Exception e) {
-    //         log.error("Error fetching latest upload: {}", e.getMessage(), e);
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    //     }
-    // }
+    @GetMapping("/upload-history/latest")
+    public ResponseEntity<UploadHistory> getLatestSuccessfulUpload() {
+        try {
+            return uploadHistoryRepository.findLatestSuccessfulUpload()
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            log.error("Error fetching latest upload: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
     
-    // @DeleteMapping("/upload-history/{batchId}")
-    // public ResponseEntity<Void> deleteUploadHistory(@PathVariable String batchId) {
-    //     try {
-    //         UploadHistory uploadHistory = uploadHistoryRepository.findByBatchId(batchId)
-    //                 .orElseThrow(() -> new RuntimeException("Upload history not found"));
-    //         
-    //         // TODO: 实际删除文件系统中的文件
-    //         // Files.deleteIfExists(Paths.get(uploadHistory.getOutputCsvPath()));
-    //         // Files.deleteIfExists(Paths.get(uploadHistory.getForecastCsvPath()));
-    //         
-    //         uploadHistoryRepository.delete(uploadHistory);
-    //         log.info("Deleted upload history: {}", batchId);
-    //         return ResponseEntity.ok().build();
-    //     } catch (Exception e) {
-    //         log.error("Error deleting upload history: {}", e.getMessage(), e);
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    //     }
-    // }
+    @DeleteMapping("/upload-history/{batchId}")
+    public ResponseEntity<Void> deleteUploadHistory(@PathVariable String batchId) {
+        try {
+            UploadHistory uploadHistory = uploadHistoryRepository.findByBatchId(batchId)
+                    .orElseThrow(() -> new RuntimeException("Upload history not found"));
+            
+            // TODO: 实际删除文件系统中的文件
+            // Files.deleteIfExists(Paths.get(uploadHistory.getOutputCsvPath()));
+            // Files.deleteIfExists(Paths.get(uploadHistory.getForecastCsvPath()));
+            
+            uploadHistoryRepository.delete(uploadHistory);
+            log.info("Deleted upload history: {}", batchId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Error deleting upload history: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
     
-    // @GetMapping("/upload-history/{batchId}/forecast-data")
-    // public ResponseEntity<List<LoanForecastData>> getForecastData(@PathVariable String batchId) {
-    //     try {
-    //         // TODO: 实现从存储中加载预测数据的逻辑
-    //         // 目前返回空列表，实际应该从数据库或文件中加载
-    //         return ResponseEntity.ok(List.of());
-    //     } catch (Exception e) {
-    //         log.error("Error fetching forecast data for batch {}: {}", batchId, e.getMessage(), e);
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    //     }
-    // }
+    @GetMapping("/upload-history/{batchId}/forecast-data")
+    public ResponseEntity<List<LoanForecastData>> getForecastData(@PathVariable String batchId) {
+        try {
+            // TODO: 实现从存储中加载预测数据的逻辑
+            // 目前返回空列表，实际应该从数据库或文件中加载
+            return ResponseEntity.ok(List.of());
+        } catch (Exception e) {
+            log.error("Error fetching forecast data for batch {}: {}", batchId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     @GetMapping("/health")
     public ResponseEntity<String> health() {

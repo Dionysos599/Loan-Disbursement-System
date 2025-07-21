@@ -34,7 +34,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 加载最新的成功上传
+  // Load latest successful upload
   const loadLatestUpload = async () => {
     setLoading(true);
     setError(null);
@@ -42,19 +42,19 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
       const upload = await dataIngestionAPI.getLatestSuccessfulUpload();
       setLatestUpload(upload);
       
-      // 如果有最新上传且没有传入的forecastData，尝试加载预测数据
+      // If there is latest upload and no forecastData, try to load forecast data
       if (upload && !forecastData) {
         try {
           const forecastData = await dataIngestionAPI.getForecastData(upload.batchId);
           setLatestForecastData(forecastData);
         } catch (error) {
           console.warn('Failed to load forecast data:', error);
-          // 不设置错误，因为这不是关键错误
+          // No error is set, because this is not a critical error
         }
       }
     } catch (error) {
       console.error('Failed to load latest upload:', error);
-      setError('无法加载最新上传数据');
+      setError('Failed to load latest upload data');
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
     loadLatestUpload();
   }, [forecastData]);
 
-  // 计算统计数据
+  // Calculate statistics data
   const displayData = forecastData || latestForecastData;
   const statsData = React.useMemo(() => {
     if (!displayData) {
@@ -80,12 +80,12 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
       return {
         totalLoanAmount: displayData.summary.totalLoanAmount || 0,
         totalCustomers: displayData.summary.totalLoans || 0,
-        averageCompletion: 0, // TODO: 计算平均完成度
+        averageCompletion: 0, // TODO: calculate average completion
         totalForecastedAmount: displayData.summary.totalForecastedAmount || 0
       };
     }
 
-    // 如果是从upload返回的数据，计算统计
+    // If the data is returned from upload, calculate statistics
     if (displayData.loanForecasts) {
       const totalAmount = displayData.loanForecasts.reduce((sum: number, loan: any) => 
         sum + (loan.loanAmount || 0), 0);
@@ -95,7 +95,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
       return {
         totalLoanAmount: totalAmount,
         totalCustomers: displayData.loanForecasts.length,
-        averageCompletion: 0, // TODO: 计算平均完成度
+        averageCompletion: 0, // TODO: calculate average completion
         totalForecastedAmount: totalForecasted
       };
     }
@@ -108,11 +108,11 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
     };
   }, [displayData]);
 
-  // 准备图表数据
+  // Prepare chart data
   const chartData = React.useMemo(() => {
     if (!displayData) return [];
 
-    // 如果是从forecastData来的数据
+    // If the data is from forecastData
     if (displayData.forecastData && Array.isArray(displayData.forecastData)) {
       const monthlyData = displayData.forecastData.reduce((acc: any, item: any) => {
         const month = item.date;
@@ -124,10 +124,10 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
         return acc;
       }, {});
 
-      return Object.values(monthlyData).slice(0, 12); // 只显示前12个月
+      return Object.values(monthlyData).slice(0, 12); // Only show the first 12 months
     }
 
-    // 如果是从loanForecasts来的数据
+    // If the data is from loanForecasts
     if (displayData.loanForecasts && Array.isArray(displayData.loanForecasts)) {
       const monthlyData: { [key: string]: { month: string; totalAmount: number } } = {};
       
@@ -159,7 +159,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1">
-          资产组合仪表板
+          Portfolio Dashboard
         </Typography>
         <Button
           variant="outlined"
@@ -167,7 +167,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
           onClick={loadLatestUpload}
           disabled={loading}
         >
-          刷新数据
+          Refresh data
         </Button>
       </Box>
 
@@ -179,7 +179,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
 
       {!displayData && !loading && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          暂无预测数据。请先上传CSV文件生成预测数据。
+          No forecast data. Please upload CSV file to generate forecast data.
         </Alert>
       )}
 
@@ -194,19 +194,19 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
               <ShowChart sx={{ mr: 1 }} />
-              最新预测数据
+              Latest forecast data
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
               <Box>
-                <Typography variant="body2" color="textSecondary">文件名</Typography>
+                <Typography variant="body2" color="textSecondary">File name</Typography>
                 <Typography variant="body1">{latestUpload.originalFilename}</Typography>
               </Box>
               <Box>
-                <Typography variant="body2" color="textSecondary">上传时间</Typography>
+                <Typography variant="body2" color="textSecondary">Upload time</Typography>
                 <Typography variant="body1">{dayjs(latestUpload.uploadedAt).format('YYYY-MM-DD HH:mm')}</Typography>
               </Box>
               <Box>
-                <Typography variant="body2" color="textSecondary">处理记录数</Typography>
+                <Typography variant="body2" color="textSecondary">Processed records</Typography>
                 <Typography variant="body1">{latestUpload.processedRecords}/{latestUpload.totalRecords}</Typography>
               </Box>
             </Box>
@@ -214,7 +214,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
         </Card>
       )}
 
-      {/* 关键指标卡片 */}
+      {/* Key metrics cards */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 3 }}>
         <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <Card>
@@ -226,7 +226,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
                     {dayjs().format('YYYY-MM-DD')}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    今日日期
+                    Today's date
                   </Typography>
                 </Box>
               </Box>
@@ -244,7 +244,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
                     ${statsData.totalLoanAmount.toLocaleString()}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    总贷款金额
+                    Total loan amount
                   </Typography>
                 </Box>
               </Box>
@@ -262,7 +262,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
                     {statsData.totalCustomers}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    客户总数
+                    Total customers
                   </Typography>
                 </Box>
               </Box>
@@ -280,7 +280,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
                     {statsData.averageCompletion.toFixed(1)}%
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    平均完成度
+                    Average completion
                   </Typography>
                 </Box>
               </Box>
@@ -289,13 +289,13 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
         </Box>
       </Box>
 
-      {/* 预测趋势图表 */}
+      {/* Forecast trend chart */}
       {chartData.length > 0 && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
               <TrendingUp sx={{ mr: 1 }} />
-              预测趋势
+              Forecast trend
             </Typography>
             <Box sx={{ height: 400, width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -310,7 +310,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
                     dataKey="totalAmount" 
                     stroke="#8884d8" 
                     strokeWidth={2}
-                    name="累计预测金额"
+                    name="Cumulative forecast amount"
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -319,24 +319,24 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ forecastData })
         </Card>
       )}
 
-      {/* 总计预测金额卡片 */}
+      {/* Total forecast amount card */}
       {statsData.totalForecastedAmount > 0 && (
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              预测总览
+              Forecast overview
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               <Box>
-                <Typography variant="body2" color="textSecondary">总预测金额</Typography>
+                <Typography variant="body2" color="textSecondary">Total forecast amount</Typography>
                 <Typography variant="h5" color="primary">
                   ${statsData.totalForecastedAmount.toLocaleString()}
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="body2" color="textSecondary">预测开始日期</Typography>
+                <Typography variant="body2" color="textSecondary">Forecast start date</Typography>
                 <Typography variant="h6">
-                  {displayData?.forecastStartDate ? dayjs(displayData.forecastStartDate).format('YYYY年MM月') : '-'}
+                  {displayData?.forecastStartDate ? dayjs(displayData.forecastStartDate).format('YYYY-MM') : '-'}
                 </Typography>
               </Box>
             </Box>

@@ -8,9 +8,9 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// 数据上传相关接口
+// Data upload related interfaces
 export const dataIngestionAPI = {
-  // 上传CSV文件
+  // Upload CSV file
   uploadCSV: async (file: File, startMonth: string) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -24,85 +24,85 @@ export const dataIngestionAPI = {
     return response.data;
   },
   
-  // 获取上传历史列表
+  // Get upload history list
   getUploadHistory: async () => {
     const response = await api.get('/data-ingestion/upload-history');
     return response.data;
   },
   
-  // 获取最新的成功上传
+  // Get latest successful upload
   getLatestSuccessfulUpload: async () => {
     const response = await api.get('/data-ingestion/upload-history/latest');
     return response.data;
   },
   
-  // 删除上传历史
+  // Delete upload history
   deleteUploadHistory: async (batchId: string) => {
     const response = await api.delete(`/data-ingestion/upload-history/${batchId}`);
     return response.data;
   },
   
-  // 获取特定批次的预测数据
+  // Get forecast data for specific batch
   getForecastData: async (batchId: string) => {
     const response = await api.get(`/data-ingestion/upload-history/${batchId}/forecast-data`);
     return response.data;
   },
   
-  // 获取处理状态
+  // Get processing status
   getProcessingStatus: async (batchId: string) => {
     const response = await api.get(`/data-ingestion/status/${batchId}`);
     return response.data;
   },
   
-  // 健康检查
+  // Health check
   healthCheck: async () => {
     const response = await api.get('/data-ingestion/health');
     return response.data;
   },
 };
 
-// 预测服务相关接口
+// Forecast service related interfaces
 export const forecastingAPI = {
-  // 生成预测
+  // Generate forecast
   generateForecast: async (data: any) => {
     const response = await api.post('/forecasting/forecast', data);
     return response.data;
   },
   
-  // 健康检查
+  // Health check
   healthCheck: async () => {
     const response = await api.get('/forecasting/health');
     return response.data;
   },
 };
 
-// 贷款管理相关接口
+// Loan management related interfaces
 export const loanAPI = {
-  // 获取贷款列表
+  // Get loan list
   getLoans: async () => {
     const response = await api.get('/loans');
     return response.data;
   },
   
-  // 获取单个贷款详情
+  // Get single loan details
   getLoanDetails: async (loanId: string) => {
     const response = await api.get(`/loans/${loanId}`);
     return response.data;
   },
   
-  // 更新贷款进度
+  // Update loan progress
   updateLoanProgress: async (loanId: string, progressData: any) => {
     const response = await api.put(`/loans/${loanId}/progress`, progressData);
     return response.data;
   },
   
-  // 计算还款计划
+  // Calculate repayment schedule
   calculateSchedule: async (loanId: string, scheduleData: any) => {
     const response = await api.post(`/loans/${loanId}/calculate-schedule`, scheduleData);
     return response.data;
   },
   
-  // 获取组合风险敞口
+  // Get portfolio risk exposure
   getPortfolioExposure: async () => {
     const response = await api.get('/portfolio/exposure');
     return response.data;
