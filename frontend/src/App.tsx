@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Alert } from '@mui/material';
+import React, { useState } from 'react';
+import './App.css';
 import Layout from './components/Layout';
-import PortfolioDashboard from './components/PortfolioDashboard';
 import DataUpload from './components/DataUpload';
 import ForecastVisualization from './components/ForecastVisualization';
+import PortfolioDashboard from './components/PortfolioDashboard';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -11,36 +11,32 @@ function App() {
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
-    // 不再清空forecastData，保持数据持久性
   };
 
-  const handleForecastGenerated = (data: any) => {
+  const handleForecastDataGenerated = (data: any) => {
     setForecastData(data);
-    setCurrentPage('forecast');
+    setCurrentPage('forecast'); // Auto-navigate to forecast page
   };
 
-  const renderContent = () => {
+  const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <PortfolioDashboard forecastData={forecastData} />;
+        return <PortfolioDashboard />;
       case 'upload':
-        return <DataUpload onForecastGenerated={handleForecastGenerated} />;
+        return <DataUpload onForecastDataGenerated={handleForecastDataGenerated} />;
       case 'forecast':
-        return (
-          <ForecastVisualization 
-            forecastData={forecastData} 
-            onForecastDataLoaded={setForecastData}
-          />
-        );
+        return <ForecastVisualization forecastData={forecastData} onForecastDataLoaded={setForecastData} />;
       default:
-        return <PortfolioDashboard forecastData={forecastData} />;
+        return <PortfolioDashboard />;
     }
   };
 
   return (
-    <Layout currentPage={currentPage} onNavigate={handleNavigate}>
-      {renderContent()}
-    </Layout>
+    <div className="App">
+      <Layout onNavigate={handleNavigate} currentPage={currentPage}>
+        {renderPage()}
+      </Layout>
+    </div>
   );
 }
 

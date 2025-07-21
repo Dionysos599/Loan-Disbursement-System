@@ -1,53 +1,35 @@
-export interface Loan {
-  loanId: string;
+// 简化的类型定义 - 只保留系统实际使用的类型
+
+export interface LoanForecastData {
+  loanNumber: string;
   customerName: string;
   loanAmount: number;
-  startDate: string;
-  maturityDate: string;
-  extendedDate?: string;
   propertyType?: string;
-  currentProgress?: Progress;
-  schedule?: ScheduleItem[];
+  city?: string;
+  forecastData: Record<string, number>;
+  totalForecastedAmount?: number;
+  scenarioName?: string;
 }
 
-export interface Progress {
-  percentComplete: number;
-  outstandingBalance: number;
-  asOfDate: string;
+export interface UploadHistory {
+  batchId: string;
+  originalFilename: string;
+  fileSize: number;
+  uploadStatus: string;
+  uploadedAt: string;
+  totalRecords: number;
+  processedRecords: number;
+  failedRecords: number;
+  originalFilePath?: string;
+  forecastCsvPath?: string;
 }
 
-export interface ScheduleItem {
-  month: string;
-  cumulativeAmount: number;
-  monthlyAmount: number;
-}
-
-export interface CalculateScheduleRequest {
-  fromDate: string;
-  toDate: string;
-  currentComplete?: number;
-}
-
-export interface UpdateProgressRequest {
-  percentComplete: number;
-  outstandingBalance: number;
-  asOfDate: string;
-}
-
-export interface ExtendMaturityRequest {
-  newMaturityDate: string;
-}
-
-export interface PortfolioExposure {
-  totalExposure: number;
-  exposureByType: Record<string, number>;
-  monthlyProjections: MonthlyProjection[];
-}
-
-export interface MonthlyProjection {
-  month: string;
-  totalExposure: number;
-  constructionExposure: number;
-  multifamilyExposure: number;
-  creExposure: number;
+export interface DataIngestionResponse {
+  batchId: string;
+  status: string;
+  totalRecords: number;
+  processedRecords: number;
+  failedRecords: number;
+  message: string;
+  loanForecasts: LoanForecastData[];
 } 

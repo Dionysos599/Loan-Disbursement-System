@@ -1,9 +1,9 @@
 services:
   postgres:
     image: postgres:15
-    container_name: loan-postgres
+    container_name: loan-forecast-postgres
     environment:
-      POSTGRES_DB: loan_disbursement
+      POSTGRES_DB: loan_forecast
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
@@ -12,43 +12,25 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - loan-network
+      - loan-forecast-network
 
   redis:
     image: redis:7-alpine
-    container_name: loan-redis
+    container_name: loan-forecast-redis
     ports:
       - "6379:6379"
     networks:
-      - loan-network
+      - loan-forecast-network
 
-  disbursement-service:
+  loan-forecast-service:
     build:
-      context: ../backend/disbursement-service
+      context: ../backend/loan-forecast
       dockerfile: Dockerfile
-    container_name: loan-disbursement-service
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/loan_disbursement
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: password
-      SPRING_REDIS_HOST: redis
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - loan-network
-
-  data-ingestion-service:
-    build:
-      context: ../backend/data-ingestion
-      dockerfile: Dockerfile
-    container_name: loan-data-ingestion-service
+    container_name: loan-forecast-service
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/loan_disbursement
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/loan_forecast
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: password
       SPRING_REDIS_HOST: redis
@@ -56,45 +38,25 @@ services:
       - postgres
       - redis
     networks:
-      - loan-network
-
-  forecasting-service:
-    build:
-      context: ../backend/forecasting-service
-      dockerfile: Dockerfile
-    container_name: loan-forecasting-service
-    ports:
-      - "8082:8082"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/loan_disbursement
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: password
-      SPRING_REDIS_HOST: redis
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - loan-network
+      - loan-forecast-network
 
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    container_name: loan-frontend
+    container_name: loan-forecast-frontend
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_API_URL: http://localhost:8080/api
+      REACT_APP_API_URL: http://localhost:8081/api
     depends_on:
-      - disbursement-service
-      - data-ingestion-service
-      - forecasting-service
+      - loan-forecast-service
     networks:
-      - loan-network
+      - loan-forecast-network
 
 volumes:
   postgres_data:
 
 networks:
-  loan-network:
+  loan-forecast-network:
     driver: bridge
