@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import './App.css';
 import Layout from './components/Layout';
 import DataUpload from './components/DataUpload';
-import ForecastVisualization from './components/ForecastVisualization';
 import PortfolioDashboard from './components/PortfolioDashboard';
 
 function App() {
@@ -15,7 +14,7 @@ function App() {
 
   const handleForecastDataGenerated = (data: any) => {
     setForecastData(data);
-    setCurrentPage('forecast'); // Auto-navigate to forecast page
+    setCurrentPage('dashboard'); // Navigate to dashboard instead of forecast
   };
 
   const renderPage = () => {
@@ -24,8 +23,6 @@ function App() {
         return <PortfolioDashboard />;
       case 'upload':
         return <DataUpload onForecastDataGenerated={handleForecastDataGenerated} />;
-      case 'forecast':
-        return <ForecastVisualization forecastData={forecastData} onForecastDataLoaded={setForecastData} />;
       default:
         return <PortfolioDashboard />;
     }
@@ -35,7 +32,7 @@ function App() {
     <div className="App">
       <Layout onNavigate={handleNavigate} currentPage={currentPage}>
         {renderPage()}
-      </Layout>
+    </Layout>
     </div>
   );
 }

@@ -65,7 +65,7 @@ public class LoanForecastController {
             List<LoanForecastData> forecastDataList = csvProcessingService.convertToLoanForecastData(loanDataList, startMonth);
 
             // 生成自定义格式的forecast csv
-            String forecastCsvPath = csvProcessingService.generateForecastCsvWithOriginalFormat(loanDataList, forecastDataList, file.getOriginalFilename());
+            String forecastCsvPath = csvProcessingService.generateForecastCsvWithOriginalFormat(loanDataList, forecastDataList, file.getOriginalFilename(), startMonth);
             uploadHistory.setForecastCsvPath(forecastCsvPath);
             uploadHistoryRepository.save(uploadHistory);
 

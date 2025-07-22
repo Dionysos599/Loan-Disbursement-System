@@ -14,10 +14,8 @@ import {
   TableRow,
   IconButton,
   Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import { 
   CloudUpload as CloudUploadIcon, 
@@ -41,6 +39,7 @@ interface DataUploadProps {
 }
 
 const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
+  const theme = useTheme();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [startMonth, setStartMonth] = useState<Dayjs>(dayjs());
   const [uploading, setUploading] = useState(false);
@@ -71,7 +70,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
-        setSelectedFile(file);
+      setSelectedFile(file);
         setError(null);
       } else {
         setError('Please select a CSV file');
@@ -87,14 +86,14 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
     }
 
     try {
-      setUploading(true);
+    setUploading(true);
       setError(null);
-      
+
       const result = await loanForecastAPI.uploadCSV(selectedFile, startMonth.format('YYYY-MM-DD'));
       setUploadResult(result);
-      
+        
       // Generate forecast data for visualization
-      if (result.loanForecasts && result.loanForecasts.length > 0) {
+        if (result.loanForecasts && result.loanForecasts.length > 0) {
         const forecastData = result.loanForecasts.map((loan: any) => ({
           ...loan,
           scenarioName: loan.loanNumber || 'N/A',
@@ -145,20 +144,35 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Loan Forecast Data Upload
-        </Typography>
-        
+      <Box sx={{ p: 3, backgroundColor: alpha(theme.palette.background.default, 0.5) }}>
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h3" sx={{ fontWeight: 700, mb: 1, color: theme.palette.primary.main }}>
+            Data Upload
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Upload CSV files for loan forecast processing and analysis
+      </Typography>
+        </Box>
+
         {/* Upload Form */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
+        <Paper sx={{ p: 4, mb: 4, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>
             Upload CSV File
           </Typography>
-          
-          <Box sx={{ mb: 2 }}>
+
+          {/* Upload Controls in Single Row */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 3, 
+            mb: 3,
+            flexWrap: 'wrap'
+          }}>
+            {/* File Selection */}
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
             <input
-              id="file-input"
+                id="file-input"
               type="file"
               accept=".csv"
               onChange={handleFileSelect}
@@ -168,43 +182,84 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
               <Button
                 variant="outlined"
                 component="span"
-                startIcon={<CloudUploadIcon />}
-                sx={{ mr: 2 }}
+                  startIcon={<CloudUploadIcon />}
+                  sx={{ 
+                    width: '100%',
+                    height: '56px',
+                    borderStyle: 'dashed',
+                    borderWidth: 2,
+                    '&:hover': {
+                      borderStyle: 'dashed',
+                      borderWidth: 2,
+                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                    }
+                  }}
               >
-                Select CSV File
+                  {selectedFile ? 'Change File' : 'Select CSV File'}
               </Button>
             </label>
-            {selectedFile && (
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
-              </Typography>
-            )}
           </Box>
 
-          <Box sx={{ mb: 2 }}>
-            <DatePicker
-              label="Forecast Start Month"
-              value={startMonth}
-              onChange={(newValue) => newValue && setStartMonth(newValue)}
-              views={['year', 'month']}
-              format="YYYY-MM"
-              sx={{ minWidth: 200 }}
-            />
+            {/* Date Picker */}
+            <Box sx={{ flex: '0 0 200px' }}>
+              <DatePicker
+                label="Forecast Start Month"
+                value={startMonth}
+                onChange={(newValue) => newValue && setStartMonth(newValue)}
+                views={['year', 'month']}
+                format="YYYY-MM"
+                sx={{ width: '100%' }}
+              />
           </Box>
 
+            {/* Upload Button */}
+            <Box sx={{ flex: '0 0 auto' }}>
           <Button
             variant="contained"
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
-            startIcon={<CloudUploadIcon />}
+                startIcon={<CloudUploadIcon />}
+                sx={{ 
+                  height: '56px',
+                  px: 4,
+                  fontWeight: 600,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  '&:hover': {
+                    boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
+                  }
+                }}
           >
-            {uploading ? 'Uploading...' : 'Upload and Process'}
+                {uploading ? 'Processing...' : 'Upload & Process'}
           </Button>
+            </Box>
+          </Box>
 
-          {uploading && <LinearProgress sx={{ mt: 2 }} />}
-          
+          {/* File Info */}
+          {selectedFile && (
+            <Box sx={{ 
+              p: 2, 
+              backgroundColor: alpha(theme.palette.success.main, 0.08),
+              border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+              borderRadius: 2,
+              mb: 2
+            }}>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                Selected: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(2)} KB)
+              </Typography>
+            </Box>
+          )}
+
+          {uploading && (
+            <Box sx={{ mb: 2 }}>
+              <LinearProgress sx={{ borderRadius: 1, height: 6 }} />
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
+                Processing your file...
+              </Typography>
+            </Box>
+          )}
+
           {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
+            <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
@@ -212,10 +267,9 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
           {uploadResult && (
             <Alert 
               severity={uploadResult.status === 'SUCCESS' ? 'success' : 'error'} 
-              sx={{ mt: 2 }}
+              sx={{ mt: 2, borderRadius: 2 }}
             >
               <Typography variant="body2">
-                <strong>Batch ID:</strong> {uploadResult.batchId}<br />
                 <strong>Status:</strong> {uploadResult.status}<br />
                 <strong>Total Records:</strong> {uploadResult.totalRecords}<br />
                 <strong>Processed:</strong> {uploadResult.processedRecords}<br />
@@ -227,97 +281,130 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
         </Paper>
 
         {/* Upload History */}
-        <Paper sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
-              Upload History
+        <Paper sx={{ p: 4, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5, textAlign: 'left' }}>
+                Generated forecast data
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'left' }}>
+                Track the forecast data generated previously uploaded
             </Typography>
+            </Box>
             <Button
               startIcon={<RefreshIcon />}
               onClick={fetchUploadHistory}
               disabled={loading}
+              variant="outlined"
+              sx={{ borderRadius: 2 }}
             >
               Refresh
             </Button>
           </Box>
 
           {loading ? (
-            <LinearProgress />
+            <LinearProgress sx={{ borderRadius: 1, height: 6 }} />
           ) : (
-            <TableContainer>
+            <TableContainer sx={{ borderRadius: 2, border: `1px solid ${alpha(theme.palette.divider, 0.12)}` }}>
               <Table>
                 <TableHead>
-                  <TableRow>
-                    <TableCell>Batch ID</TableCell>
-                    <TableCell>Filename</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Records</TableCell>
-                    <TableCell>Uploaded At</TableCell>
-                    <TableCell>Actions</TableCell>
+                  <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04) }}>
+                    <TableCell sx={{ fontWeight: 600 }}>Filename</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Records</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Upload Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {uploadHistory.map((history) => (
-                    <TableRow key={history.batchId}>
+                    <TableRow 
+                      key={history.batchId}
+                      sx={{ '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.5) } }}
+                    >
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {history.batchId.substring(0, 8)}...
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {history.originalFilename}
                         </Typography>
                       </TableCell>
-                      <TableCell>{history.originalFilename}</TableCell>
                       <TableCell>
                         <Chip 
                           label={history.uploadStatus} 
                           color={getStatusColor(history.uploadStatus) as any}
                           size="small"
+                          sx={{ fontWeight: 500 }}
                         />
                       </TableCell>
                       <TableCell>
-                        {history.totalRecords} total
-                        {history.processedRecords !== undefined && (
-                          <> ({history.processedRecords} processed)</>
-                        )}
+                        <Typography variant="body2">
+                          <strong>{history.totalRecords}</strong> total
+                          {history.processedRecords !== undefined && (
+                            <Typography component="span" color="text.secondary" sx={{ ml: 1 }}>
+                              ({history.processedRecords} processed)
+                            </Typography>
+                          )}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        {new Date(history.uploadedAt).toLocaleString()}
+                        <Typography variant="body2">
+                          {new Date(history.uploadedAt).toLocaleDateString()} at{' '}
+                          {new Date(history.uploadedAt).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </Typography>
                       </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            const url = loanForecastAPI.downloadForecastFile(history.batchId);
-                            window.open(url, '_blank');
-                          }}
-                          title="Download Forecast CSV"
-                        >
-                          <DownloadIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteHistory(history.batchId)}
-                          color="error"
-                          title="Delete"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
+                        <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              const url = loanForecastAPI.downloadForecastFile(history.batchId);
+                              window.open(url, '_blank');
+                            }}
+                            title="Download Forecast CSV"
+                            sx={{ 
+                              color: theme.palette.info.main,
+                              '&:hover': { backgroundColor: alpha(theme.palette.info.main, 0.1) }
+                            }}
+                          >
+                            <DownloadIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteHistory(history.batchId)}
+                            title="Delete"
+                            sx={{ 
+                              color: theme.palette.error.main,
+                              '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.1) }
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}
                   {uploadHistory.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">
-                        <Typography color="textSecondary">
-                          No upload history found
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
+                      <TableCell colSpan={5} align="center">
+                        <Box sx={{ py: 4 }}>
+                          <Typography color="text.secondary" variant="body1">
+                            No upload history found
+                          </Typography>
+                          <Typography color="text.secondary" variant="body2" sx={{ mt: 1 }}>
+                            Upload your first CSV file to get started
+                          </Typography>
+                        </Box>
+                        </TableCell>
+                      </TableRow>
                   )}
                 </TableBody>
               </Table>
             </TableContainer>
           )}
         </Paper>
-      </Box>
+    </Box>
     </LocalizationProvider>
   );
 };
