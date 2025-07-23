@@ -19,24 +19,76 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.Locale;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 @Slf4j
 public class CsvProcessingService {
+    private final MeterRegistry meterRegistry;
+    private final Counter successCounter;
+    private final Counter failureCounter;
+    private final Timer batchProcessingTimer;
+    private static volatile int activeBatchCount = 0;
+
+    @Autowired
+    public CsvProcessingService(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+        this.successCounter = meterRegistry.counter("batch_processing_success");
+        this.failureCounter = meterRegistry.counter("batch_processing_failure");
+        this.batchProcessingTimer = meterRegistry.timer("batch_processing_duration");
+        Gauge.builder("active_batch_count", CsvProcessingService::getActiveBatchCount)
+                .description("Number of active batch processing jobs")
+                .register(meterRegistry);
+        // 初始化一次，确保指标被采集
+        this.successCounter.increment(0.0);
+        this.failureCounter.increment(0.0);
+        this.batchProcessingTimer.record(0, java.util.concurrent.TimeUnit.MILLISECONDS);
+    }
+
+    public static int getActiveBatchCount() {
+        return activeBatchCount;
+    }
 
     public List<CsvLoanData> processCsvFile(MultipartFile file) throws IOException {
         log.info("Processing CSV file: {}", file.getOriginalFilename());
-        return processCsvData(new InputStreamReader(file.getInputStream()));
+        activeBatchCount++;
+        try {
+            return batchProcessingTimer.record(() -> {
+                try {
+                    List<CsvLoanData> result = processCsvData(new InputStreamReader(file.getInputStream()));
+                    successCounter.increment();
+                    return result;
+                } catch (IOException e) {
+                    failureCounter.increment();
+                    throw new RuntimeException(e);
+                }
+            });
+        } finally {
+            activeBatchCount--;
+        }
     }
 
     public List<LoanForecastData> processCsvFileFromPath(String filePath, String startMonth) throws IOException {
         log.info("Processing CSV file from path: {}", filePath);
-        
-        try (Reader reader = new FileReader(filePath)) {
-            List<CsvLoanData> loanDataList = processCsvData(reader);
-            log.info("Successfully parsed {} loan records from CSV file", loanDataList.size());
-            
-            return convertToLoanForecastData(loanDataList, startMonth);
+        activeBatchCount++;
+        try {
+            return batchProcessingTimer.record(() -> {
+                try (Reader reader = new FileReader(filePath)) {
+                    List<CsvLoanData> loanDataList = processCsvData(reader);
+                    successCounter.increment();
+                    log.info("Successfully parsed {} loan records from CSV file", loanDataList.size());
+                    return convertToLoanForecastData(loanDataList, startMonth);
+                } catch (IOException e) {
+                    failureCounter.increment();
+                    throw new RuntimeException(e);
+                }
+            });
+        } finally {
+            activeBatchCount--;
         }
     }
 
