@@ -241,7 +241,7 @@ const PortfolioDashboard: React.FC = () => {
   const StatCard = ({ title, value, icon, color }: any) => (
     <Card 
       sx={{ 
-        height: '100%',
+        height: '120px', // 固定高度确保一致性
         background: `linear-gradient(135deg, ${alpha(color, 0.1)} 0%, ${alpha(color, 0.05)} 100%)`,
         border: `1px solid ${alpha(color, 0.2)}`,
         transition: 'all 0.2s ease-in-out',
@@ -251,13 +251,45 @@ const PortfolioDashboard: React.FC = () => {
         }
       }}
     >
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+      <CardContent sx={{ 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'center',
+        p: 2,
+        '&:last-child': { pb: 2 } // 确保底部padding一致
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          height: '100%'
+        }}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            justifyContent: 'center',
+            flex: 1
+          }}>
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              sx={{ 
+                fontWeight: 500,
+                mb: 0.5,
+                lineHeight: 1.2
+              }}
+            >
               {title}
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 700, color }}>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 700, 
+                color,
+                lineHeight: 1.1
+              }}
+            >
               {value}
             </Typography>
           </Box>
@@ -271,8 +303,15 @@ const PortfolioDashboard: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
+            ml: 2
           }}>
-            {icon}
+            {React.cloneElement(icon, { 
+              sx: { 
+                fontSize: 28, // 统一图标大小
+                color: color,
+                display: 'block' // 确保图标正确渲染
+              } 
+            })}
           </Box>
         </Box>
       </CardContent>
@@ -297,7 +336,7 @@ const PortfolioDashboard: React.FC = () => {
           <StatCard
             title="Total loans"
             value={portfolioData.summary.totalLoans.toLocaleString()}
-            icon={<AccountBalanceIcon sx={{ fontSize: 32, color: theme.palette.primary.main }} />}
+            icon={<AccountBalanceIcon />}
             color={theme.palette.primary.main}
           />
         </Box>
@@ -305,7 +344,7 @@ const PortfolioDashboard: React.FC = () => {
           <StatCard
             title="Total loan amount"
             value={`$${(portfolioData.summary.totalLoanAmount / 1000000).toFixed(1)}M`}
-            icon={<AttachMoneyIcon sx={{ fontSize: 32, color: theme.palette.success.main }} />}
+            icon={<AttachMoneyIcon />}
             color={theme.palette.success.main}
           />
         </Box>
@@ -313,7 +352,7 @@ const PortfolioDashboard: React.FC = () => {
           <StatCard
             title="Highest forecasted balance"
             value={`$${(portfolioData.summary.highestForecastedBalance / 1000).toFixed(0)}K`}
-            icon={<TrendingUpIcon sx={{ fontSize: 32, color: theme.palette.warning.main }} />}
+            icon={<TrendingUpIcon />}
             color={theme.palette.warning.main}
           />
         </Box>
@@ -321,7 +360,7 @@ const PortfolioDashboard: React.FC = () => {
           <StatCard
             title="Data points"
             value={portfolioData.summary.totalDataPoints.toLocaleString()}
-            icon={<DataUsageIcon sx={{ fontSize: 32, color: theme.palette.info.main }} />}
+            icon={<DataUsageIcon />}
             color={theme.palette.info.main}
           />
         </Box>

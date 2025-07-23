@@ -3,6 +3,8 @@ import './App.css';
 import Layout from './components/Layout';
 import DataUpload from './components/DataUpload';
 import PortfolioDashboard from './components/PortfolioDashboard';
+import { StagewiseToolbar } from '@stagewise/toolbar-react';
+import ReactPlugin from '@stagewise-plugins/react';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -30,6 +32,7 @@ function App() {
 
   return (
     <div className="App">
+      <StagewiseToolbar config={{ plugins: [ReactPlugin] }} />
       <Layout onNavigate={handleNavigate} currentPage={currentPage}>
         {renderPage()}
     </Layout>

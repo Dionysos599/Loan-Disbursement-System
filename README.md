@@ -80,7 +80,7 @@ A comprehensive loan forecast and portfolio management system designed for Ameri
    - Click on "Data Upload" section
 
 2. **Prepare Your CSV File**
-   - Ensure your CSV contains required columns (see [Data Format](#-data-format))
+   - Ensure your CSV contains required columns (see [Data Format](#2-data-format))
    - File size limit: 50MB
    - Supported format: `.csv`
 

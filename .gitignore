@@ -59,4 +59,7 @@ __pycache__/
 # Embedded git repos (should not be tracked)
 **/.git/
 
+# Local configuration files
+*.local.md
+
 backend/data/
