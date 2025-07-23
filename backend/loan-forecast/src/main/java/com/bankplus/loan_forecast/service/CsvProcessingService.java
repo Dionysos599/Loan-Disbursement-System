@@ -4,8 +4,6 @@ import com.bankplus.loan_forecast.dto.LoanForecastData;
 import com.bankplus.loan_forecast.model.CsvLoanData;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
-import com.opencsv.bean.CsvToBean;
-import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.exceptions.CsvValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,7 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -39,13 +36,12 @@ public class CsvProcessingService {
             List<CsvLoanData> loanDataList = processCsvData(reader);
             log.info("Successfully parsed {} loan records from CSV file", loanDataList.size());
             
-            // 转换为预测数据
             return convertToLoanForecastData(loanDataList, startMonth);
         }
     }
 
     /**
-     * 手动解析CSV，只提取必需的7个列，忽略其他所有列
+     * Only extract the required columns, ignore all other columns
      */
     private List<CsvLoanData> processCsvData(Reader reader) throws IOException {
         List<CsvLoanData> loanDataList = new ArrayList<>();
@@ -61,13 +57,11 @@ public class CsvProcessingService {
                 throw new IOException("Invalid CSV format: " + e.getMessage(), e);
             }
             
-            // 找到必需列的索引位置
+            // Find the index of the required columns
             Map<String, Integer> columnIndexes = findRequiredColumnIndexes(headers);
             log.info("Found required columns at indexes: {}", columnIndexes);
             
-            // 验证所有必需列都存在
-            String[] requiredColumns = {"Loan Number", "Customer Name", "Loan Amount", "Maturity Date", "Extended Date", 
-                                      "Outstanding Balance", "Undisbursed Amount", "% of Loan Drawn", "% of Completion"};
+            // Verify that all required columns exist
             String[] criticalColumns = {"Loan Number", "Loan Amount", "Maturity Date", "Extended Date", 
                                       "Outstanding Balance", "Undisbursed Amount", "% of Completion"};
             for (String col : criticalColumns) {
@@ -100,7 +94,7 @@ public class CsvProcessingService {
     }
     
     /**
-     * 找到必需列在CSV中的索引位置
+     * Find the index of the required columns in the CSV
      */
     private Map<String, Integer> findRequiredColumnIndexes(String[] headers) {
         Map<String, Integer> indexes = new HashMap<>();
@@ -136,7 +130,7 @@ public class CsvProcessingService {
     }
     
     /**
-     * 从CSV行中提取必需字段，创建CsvLoanData对象
+     * Extract the required fields from the CSV row and create a CsvLoanData object
      */
     private CsvLoanData extractRequiredFields(String[] row, Map<String, Integer> columnIndexes) {
         try {
@@ -150,11 +144,10 @@ public class CsvProcessingService {
             String percentOfLoanDrawn = getColumnValue(row, columnIndexes, "% of Loan Drawn");
             String percentOfCompletion = getColumnValue(row, columnIndexes, "% of Completion");
             
-            // 验证关键字段不为空（Customer Name和% of Loan Drawn可以为空）
             if (isEmpty(loanNumber) || isEmpty(loanAmount) || isEmpty(maturityDate) 
                 || isEmpty(extendedDate) || isEmpty(outstandingBalance) 
                 || isEmpty(undisbursedAmount) || isEmpty(percentOfCompletion)) {
-                return null; // 跳过无效行
+                return null; // Skip invalid rows
             }
             
             CsvLoanData loanData = new CsvLoanData();
@@ -175,9 +168,6 @@ public class CsvProcessingService {
         }
     }
     
-    /**
-     * 安全获取列值
-     */
     private String getColumnValue(String[] row, Map<String, Integer> columnIndexes, String columnName) {
         Integer index = columnIndexes.get(columnName);
         if (index == null || index >= row.length) {
@@ -187,15 +177,12 @@ public class CsvProcessingService {
         return value != null ? value.trim() : "";
     }
     
-    /**
-     * 检查字符串是否为空
-     */
     private boolean isEmpty(String s) {
         return s == null || s.trim().isEmpty() || "N/A".equalsIgnoreCase(s.trim());
     }
 
     /**
-     * 生成预测数据（使用本地算法）
+     * Generate forecast data
      */
     public List<LoanForecastData> convertToLoanForecastData(List<CsvLoanData> csvDataList, String startMonthStr) {
         log.info("Converting {} CSV records to forecast data using local algorithms", csvDataList.size());
@@ -203,7 +190,7 @@ public class CsvProcessingService {
         try {
             LocalDate forecastStartDate = LocalDate.parse(startMonthStr);
             
-            // 转换CSV数据为内部处理格式
+            // Convert CSV data to Map
             List<Map<String, Object>> loanDataList = new ArrayList<>();
             for (CsvLoanData csvData : csvDataList) {
                 Map<String, Object> loanData = convertCsvToMap(csvData);
@@ -212,7 +199,7 @@ public class CsvProcessingService {
                 }
             }
             
-            // 使用本地算法计算预测
+            // Calculate forecasts (slow-fast-slow curve)
             List<Map<String, Object>> loanForecasts = calculateForecastsLocally(loanDataList, forecastStartDate);
             
             List<LoanForecastData> result = new ArrayList<>();
@@ -233,7 +220,7 @@ public class CsvProcessingService {
     }
     
     /**
-     * 本地计算预测数据
+     * Calculate forecasts
      */
     private List<Map<String, Object>> calculateForecastsLocally(List<Map<String, Object>> loanDataList, LocalDate forecastStartDate) {
         List<Map<String, Object>> results = new ArrayList<>();
@@ -253,7 +240,7 @@ public class CsvProcessingService {
     }
     
     /**
-     * 本地计算单个贷款的预测
+     * Calculate forecasts for a single loan
      */
     private Map<String, Object> calculateSingleLoanForecastLocally(Map<String, Object> loanData, LocalDate forecastStartDate) {
         String loanNumber = (String) loanData.get("loanNumber");
@@ -269,7 +256,7 @@ public class CsvProcessingService {
         log.debug("Loan {}: loanAmount={}, outstandingBalance={}, undisbursedAmount={}, percentOfCompletion={}, extendedDate={}", 
                  loanNumber, loanAmount, outstandingBalance, undisbursedAmount, percentOfCompletion, extendedDate);
         
-        // 验证参数
+        // Validate parameters
         if (outstandingBalance.compareTo(BigDecimal.ZERO) < 0 || 
             undisbursedAmount.compareTo(BigDecimal.ZERO) < 0 ||
             percentOfCompletion < 0 || percentOfCompletion > 100) {
@@ -281,15 +268,11 @@ public class CsvProcessingService {
         
         log.debug("Loan {} passed validation, generating forecasts...", loanNumber);
         
-        // 计算项目开始日期（使用验证过的算法）
         LocalDate projectStartDate = calculateProjectStartDate(percentOfCompletion / 100.0, forecastStartDate, extendedDate);
-        
-        // 计算预测结束日期 - 6个月后清零
         LocalDate cutoffDate = extendedDate.plusMonths(6);
-        // 预测应该继续到cutoff date之后的下一个月初，以确保包含所有应该为0的月份
         LocalDate forecastEndDate = cutoffDate.withDayOfMonth(1).plusMonths(1);
         
-        // 生成月度预测
+        // Generate monthly forecasts
         Map<String, BigDecimal> monthlyForecasts = new HashMap<>();
         LocalDate currentDate = forecastStartDate;
         BigDecimal totalForecastedAmount = BigDecimal.ZERO;
@@ -298,7 +281,7 @@ public class CsvProcessingService {
         while (!currentDate.isAfter(forecastEndDate)) {
             BigDecimal forecastOutstandingBalance;
             
-            // 如果当前日期在Extended Date + 180天之前的那个月或之后，预测值为0
+            // If the current date is after the month of Extended Date + 180 days, the forecast value is 0
             if (currentDate.isAfter(cutoffDate.withDayOfMonth(1).minusMonths(1))) {
                 forecastOutstandingBalance = BigDecimal.ZERO;
             } else {
@@ -308,7 +291,7 @@ public class CsvProcessingService {
                 );
             }
             
-            // 转换日期格式为CSV表头兼容的格式 (如 Nov-24)
+            // Formatting: MMM-yy
             String monthKey = currentDate.format(DateTimeFormatter.ofPattern("MMM-yy", Locale.ENGLISH));
             log.debug("Generating forecast for month: {} (currentDate: {})", monthKey, currentDate);
             monthlyForecasts.put(monthKey, forecastOutstandingBalance.setScale(2, RoundingMode.HALF_UP));
@@ -318,7 +301,6 @@ public class CsvProcessingService {
             currentDate = currentDate.plusMonths(1);
         }
         
-        // 构建结果
         Map<String, Object> result = new HashMap<>();
         result.put("loanNumber", loanNumber);
         result.put("customerName", customerName);
@@ -362,31 +344,28 @@ public class CsvProcessingService {
             LocalDate forecastDate, 
             LocalDate extendedDate) {
         
-        // 计算时间进度
         long daysBetweenStartAndForecast = ChronoUnit.DAYS.between(projectStartDate, forecastDate);
         long daysBetweenStartAndExtended = ChronoUnit.DAYS.between(projectStartDate, extendedDate);
         
         double timeProgress = daysBetweenStartAndExtended > 0 ? 
             (double) daysBetweenStartAndForecast / daysBetweenStartAndExtended : 0;
         
-        // 计算总进度
         double totalProgress = percentOfCompletion + timeProgress * (1 - percentOfCompletion);
         
-        // 确保total progress在[0, 1]范围内
+        // Ensure total progress is within [0, 1]
         if (totalProgress < 0) totalProgress = 0;
         if (totalProgress > 1) totalProgress = 1;
         
-        // 计算S-curve值
+        // -------- Core algorithm: Sigmoid model --------
         double sCurveValue = 1.0 / (1.0 + Math.exp(-12.0 * (totalProgress - 0.5)));
         
-        // 计算预测的Outstanding Balance
         BigDecimal additionalDisbursement = undisbursedAmount.multiply(BigDecimal.valueOf(sCurveValue));
         return outstandingBalance.add(additionalDisbursement);
     }
     
     private Map<String, Object> convertCsvToMap(CsvLoanData csvData) {
         try {
-            // 只依赖以下字段
+            // Only depend on the following fields
             String loanNumber = csvData.getLoanNumber();
             String loanAmount = csvData.getLoanAmount();
             String maturityDate = csvData.getMaturityDate();
@@ -396,7 +375,7 @@ public class CsvProcessingService {
             String percentOfCompletion = csvData.getPercentOfCompletion();
             String percentOfLoanDrawn = csvData.getPercentOfLoanDrawn();
 
-            // 关键字段校验，任意为空则丢弃
+            // Validate critical fields, discard if any is empty
             if (isEmpty(loanNumber) || isEmpty(loanAmount) || isEmpty(maturityDate)
                 || isEmpty(extendedDate) || isEmpty(outstandingBalance)
                 || isEmpty(undisbursedAmount) || isEmpty(percentOfCompletion)) {
@@ -425,7 +404,7 @@ public class CsvProcessingService {
             @SuppressWarnings("unchecked")
             Map<String, Object> forecastDataMap = (Map<String, Object>) forecast.get("forecastData");
             
-            // 转换forecastData格式
+            // Convert forecastData format
             Map<String, BigDecimal> forecastData = new HashMap<>();
             for (Map.Entry<String, Object> entry : forecastDataMap.entrySet()) {
                 forecastData.put(entry.getKey(), new BigDecimal(entry.getValue().toString()));
@@ -483,7 +462,7 @@ public class CsvProcessingService {
         }
         
         try {
-            // 处理M/d/yy或MM/dd/yyyy格式
+            // Handle M/d/yy or MM/dd/yyyy format
             if (dateStr.contains("/")) {
                 String[] parts = dateStr.split("/");
                 if (parts.length == 3) {
@@ -491,7 +470,7 @@ public class CsvProcessingService {
                     int day = Integer.parseInt(parts[1]);
                     int year = Integer.parseInt(parts[2]);
                     
-                    // 处理两位年份
+                    // Handle two-digit years
                     if (year < 100) {
                         if (year < 50) {
                             year += 2000;
@@ -504,14 +483,13 @@ public class CsvProcessingService {
                 }
             }
             
-            // 尝试标准格式
+            // Try standard format
             try {
                 return LocalDate.parse(dateStr);
             } catch (Exception ignored) {
-                // 继续尝试其他格式
+                // Continue trying other formats
             }
             
-            // 如果所有格式都失败，返回当前日期
             log.warn("Could not parse date: {}, using current date", dateStr);
             return LocalDate.now();
         } catch (Exception e) {
@@ -520,17 +498,15 @@ public class CsvProcessingService {
         }
     }
     
-    // 写入预测结果到Output目录CSV
+    // Write forecast results to Output directory CSV
     public void writeForecastToCsv(List<LoanForecastData> forecastDataList, String outputFileName) {
         String outputDir = "backend/data/Output/";
         try {
             Files.createDirectories(Paths.get(outputDir));
             String filePath = outputDir + outputFileName;
             try (CSVWriter writer = new CSVWriter(new FileWriter(filePath))) {
-                // 写表头
                 if (!forecastDataList.isEmpty()) {
                     LoanForecastData first = forecastDataList.get(0);
-                    // 原始字段
                     java.util.List<String> headers = new java.util.ArrayList<>();
                     headers.add("Loan Number");
                     headers.add("Customer Name");
@@ -541,11 +517,11 @@ public class CsvProcessingService {
                     headers.add("Undisbursed Amount");
                     headers.add("% of Loan Drawn");
                     headers.add("% of Completion");
-                    // 预测月份列
+                    // Forecast months
                     headers.addAll(first.getForecastData().keySet());
                     writer.writeNext(headers.toArray(new String[0]));
                 }
-                // 写数据
+
                 for (LoanForecastData data : forecastDataList) {
                     java.util.List<String> row = new java.util.ArrayList<>();
                     row.add(data.getLoanNumber());
@@ -569,20 +545,19 @@ public class CsvProcessingService {
         }
     }
     
-    // 生成预测CSV文件到forecast目录
+    // Generate forecast CSV file to forecast directory
     public void generateForecastCsv(List<LoanForecastData> forecastDataList, String inputFileName) {
         log.info("Starting generateForecastCsv with {} records and input file: {}", forecastDataList.size(), inputFileName);
         String forecastDir = "backend/data/forecast/";
         try {
             Files.createDirectories(Paths.get(forecastDir));
             
-            // 从输入文件名生成输出文件名
-            String baseName = inputFileName.replaceAll("\\.[^.]*$", ""); // 去掉扩展名
+            // <original_file_name>_forecast.csv
+            String baseName = inputFileName.replaceAll("\\.[^.]*$", ""); // Remove extension
             String outputFileName = baseName + "_forecast.csv";
             String filePath = forecastDir + outputFileName;
             
             try (CSVWriter writer = new CSVWriter(new FileWriter(filePath))) {
-                // 写表头
                 java.util.List<String> headers = new java.util.ArrayList<>();
                 headers.add("Loan Number");
                 headers.add("Customer Name");
@@ -598,14 +573,13 @@ public class CsvProcessingService {
                 headers.add("Forecast Start Date");
                 headers.add("Forecast End Date");
                 
-                // 添加所有月份列（基于第一个loan的预测数据）
+                // Add all month columns (based on the first loan's forecast data)
                 if (!forecastDataList.isEmpty() && forecastDataList.get(0).getForecastData() != null) {
                     headers.addAll(forecastDataList.get(0).getForecastData().keySet());
                 }
                 
                 writer.writeNext(headers.toArray(new String[0]));
                 
-                // 写数据
                 for (LoanForecastData data : forecastDataList) {
                     java.util.List<String> row = new java.util.ArrayList<>();
                     row.add(data.getLoanNumber());
@@ -619,19 +593,17 @@ public class CsvProcessingService {
                     row.add(data.getExtendedDate() != null ? data.getExtendedDate().toString() : "");
                     row.add(data.getTotalForecastedAmount() != null ? data.getTotalForecastedAmount().toString() : "");
                     row.add(String.valueOf(data.getForecastMonths()));
-                    
-                    // 添加预测起始和结束日期
+
                     if (data.getForecastData() != null && !data.getForecastData().isEmpty()) {
                         java.util.List<String> dates = new java.util.ArrayList<>(data.getForecastData().keySet());
                         dates.sort((a, b) -> a.compareTo(b));
-                        row.add(dates.get(0)); // 起始日期
-                        row.add(dates.get(dates.size() - 1)); // 结束日期
+                        row.add(dates.get(0)); // Start date
+                        row.add(dates.get(dates.size() - 1)); // End date
                     } else {
                         row.add("");
                         row.add("");
                     }
                     
-                    // 添加每月预测值
                     if (data.getForecastData() != null) {
                         for (String month : forecastDataList.get(0).getForecastData().keySet()) {
                             BigDecimal amount = data.getForecastData().get(month);
@@ -648,7 +620,7 @@ public class CsvProcessingService {
         }
     }
     
-    // 生成自定义格式的forecast CSV，表头与原始csv一致，后面追加预测数据
+    // Generate forecast CSV with custom format, headers are the same as the original csv, and the forecast data is appended after it
     public String generateForecastCsvWithOriginalFormat(List<CsvLoanData> originalList, List<LoanForecastData> forecastList, String inputFileName, String startMonth) {
         String forecastDir = "backend/data/forecast/";
         try {
@@ -658,20 +630,26 @@ public class CsvProcessingService {
             String filePath = forecastDir + outputFileName;
 
             try (CSVWriter writer = new CSVWriter(new FileWriter(filePath))) {
-                // 只输出你关心的字段+预测列
                 String[] baseHeaders = new String[] {
                     "Loan Number", "Loan Amount", "Maturity Date", "Extended Date",
                     "Outstanding Balance", "Undisbursed Amount", "% of Completion"
                 };
                 
-                // 动态生成32个月的预测月份（从startMonth开始）
-                String[] months = generateForecastMonths(startMonth, 32);
+                // Dynamically get all months from the forecast data
+                Set<String> allMonths = new TreeSet<>(new MonthComparator());
+                for (LoanForecastData forecast : forecastList) {
+                    if (forecast.getForecastData() != null) {
+                        allMonths.addAll(forecast.getForecastData().keySet());
+                    }
+                }
+                
+                String[] months = allMonths.toArray(new String[0]);
                 String[] headers = new String[baseHeaders.length + months.length];
                 System.arraycopy(baseHeaders, 0, headers, 0, baseHeaders.length);
                 System.arraycopy(months, 0, headers, baseHeaders.length, months.length);
                 writer.writeNext(headers);
 
-                // 只遍历forecastList，且只输出有效行
+                // Only iterate forecastList, and only output valid rows
                 for (LoanForecastData forecast : forecastList) {
                     if (forecast == null || forecast.getLoanNumber() == null || forecast.getLoanNumber().trim().isEmpty()) {
                         continue;
@@ -684,7 +662,7 @@ public class CsvProcessingService {
                     row.add(forecast.getOutstandingBalance() != null ? forecast.getOutstandingBalance().toString() : "");
                     row.add(forecast.getUndisbursedAmount() != null ? forecast.getUndisbursedAmount().toString() : "");
                     row.add(forecast.getPercentOfCompletion() != null ? forecast.getPercentOfCompletion().toString() : "");
-                    // 追加forecast数据
+
                     for (String m : months) {
                         if (forecast.getForecastData() != null && forecast.getForecastData().containsKey(m)) {
                             row.add(forecast.getForecastData().get(m) != null ? forecast.getForecastData().get(m).toString() : "");
@@ -702,34 +680,29 @@ public class CsvProcessingService {
             return null;
         }
     }
-
-    /**
-     * 动态生成预测月份数组
-     * @param startMonth 起始月份，格式如 "2024-11-01"
-     * @param numberOfMonths 生成的月份数量
-     * @return 月份字符串数组，格式如 ["Nov-24", "Dec-24", ...]
-     */
-    private String[] generateForecastMonths(String startMonth, int numberOfMonths) {
-        try {
-            LocalDate start = LocalDate.parse(startMonth);
-            String[] months = new String[numberOfMonths];
-            
-            for (int i = 0; i < numberOfMonths; i++) {
-                LocalDate currentMonth = start.plusMonths(i);
-                // 格式化为 "Nov-24" 这样的格式
-                String monthStr = currentMonth.format(DateTimeFormatter.ofPattern("MMM-yy", Locale.ENGLISH));
-                months[i] = monthStr;
-            }
-            
-            return months;
-        } catch (Exception e) {
-            log.error("Error generating forecast months from startMonth: {}", startMonth, e);
-            // 如果解析失败，返回默认的32个月（从Nov-24开始）
-            return new String[]{"Nov-24","Dec-24","Jan-25","Feb-25","Mar-25","Apr-25","May-25","Jun-25","Jul-25","Aug-25","Sep-25","Oct-25","Nov-25","Dec-25","Jan-26","Feb-26","Mar-26","Apr-26","May-26","Jun-26","Jul-26","Aug-26","Sep-26","Oct-26","Nov-26","Dec-26","Jan-27","Feb-27","Mar-27","Apr-27","May-27","Jun-27"};
-        }
-    }
     
     public String generateBatchId() {
         return "BATCH_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+    
+    /**
+     * Custom month comparator, used to correctly sort month strings ("MMM-yy")
+     */
+    private static class MonthComparator implements Comparator<String> {
+        @Override
+        public int compare(String month1, String month2) {
+            try {
+                // Parse month string to LocalDate, then compare
+                LocalDate date1 = parseMonthString(month1);
+                LocalDate date2 = parseMonthString(month2);
+                return date1.compareTo(date2);
+            } catch (Exception e) {
+                return month1.compareTo(month2);
+            }
+        }
+        
+        private LocalDate parseMonthString(String monthStr) {
+            return LocalDate.parse("01-" + monthStr, DateTimeFormatter.ofPattern("dd-MMM-yy", Locale.ENGLISH));
+        }
     }
 } 

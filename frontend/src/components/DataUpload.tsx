@@ -28,10 +28,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 
-// API imports
 import { loanForecastAPI } from '../services/api';
 
-// Type imports
 import { UploadHistory, DataIngestionResponse, LoanForecastData } from '../types/loan';
 
 interface DataUploadProps {
@@ -92,7 +90,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
       const result = await loanForecastAPI.uploadCSV(selectedFile, startMonth.format('YYYY-MM-DD'));
       setUploadResult(result);
         
-      // Generate forecast data for visualization
+      // Generate forecast visualization
         if (result.loanForecasts && result.loanForecasts.length > 0) {
         const forecastData = result.loanForecasts.map((loan: any) => ({
           ...loan,
@@ -104,7 +102,6 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
       // Refresh upload history
       await fetchUploadHistory();
       
-      // Reset form
       setSelectedFile(null);
       const fileInput = document.getElementById('file-input') as HTMLInputElement;
       if (fileInput) {
@@ -122,7 +119,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
   const handleDeleteHistory = async (batchId: string) => {
     try {
       await loanForecastAPI.deleteUploadHistory(batchId);
-      await fetchUploadHistory(); // Refresh the list
+      await fetchUploadHistory();
     } catch (error) {
       console.error('Error deleting upload history:', error);
       setError('Failed to delete upload history');

@@ -17,10 +17,7 @@ import {
 } from '@mui/material';
 import {
   Dashboard,
-  AccountBalance,
-  Timeline,
   CloudUpload,
-  TrendingUp,
   Menu as MenuIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';

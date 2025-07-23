@@ -1,4 +1,4 @@
-// 简化的类型定义 - 只保留系统实际使用的类型
+// Simplified type definitions - only keep the types actually used in the system
 
 export interface LoanForecastData {
   loanNumber: string;

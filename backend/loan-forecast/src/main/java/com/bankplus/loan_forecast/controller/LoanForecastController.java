@@ -37,7 +37,6 @@ public class LoanForecastController {
         
         String batchId = csvProcessingService.generateBatchId();
         
-        // 创建上传历史记录
         UploadHistory uploadHistory = UploadHistory.builder()
                 .batchId(batchId)
                 .originalFilename(file.getOriginalFilename())
@@ -48,7 +47,7 @@ public class LoanForecastController {
                 .build();
         
         try {
-            // 保存原始文件到本地磁盘（用流拷贝，兼容所有环境）
+            // Save the original file to the local disk (using stream copy, compatible with all environments)
             String inputDir = new java.io.File("backend/data/Input/").getAbsoluteFile().toString();
             java.nio.file.Files.createDirectories(java.nio.file.Paths.get(inputDir));
             String savedFileName = batchId + "_" + file.getOriginalFilename();
@@ -60,16 +59,14 @@ public class LoanForecastController {
             uploadHistory.setOriginalFilePath(savedFilePath.toString());
             uploadHistoryRepository.save(uploadHistory);
             
-            // 解析原始CSV为对象列表
+            // Parse the original CSV to a list of objects
             List<CsvLoanData> loanDataList = csvProcessingService.processCsvFile(file);
             List<LoanForecastData> forecastDataList = csvProcessingService.convertToLoanForecastData(loanDataList, startMonth);
 
-            // 生成自定义格式的forecast csv
             String forecastCsvPath = csvProcessingService.generateForecastCsvWithOriginalFormat(loanDataList, forecastDataList, file.getOriginalFilename(), startMonth);
             uploadHistory.setForecastCsvPath(forecastCsvPath);
             uploadHistoryRepository.save(uploadHistory);
 
-            // 更新上传历史记录（其他字段）
             uploadHistory.setTotalRecords(loanDataList.size());
             uploadHistory.setProcessedRecords(forecastDataList.size());
             uploadHistory.setFailedRecords(loanDataList.size() - forecastDataList.size());
@@ -91,7 +88,7 @@ public class LoanForecastController {
         } catch (Exception e) {
             log.error("Error processing CSV upload: {}", e.getMessage(), e);
             
-            // 更新上传历史记录为失败状态
+            // Update the upload history to a failed status
             uploadHistory.setUploadStatus("FAILED");
             uploadHistory.setErrorMessage(e.getMessage());
             uploadHistory.setProcessedAt(LocalDateTime.now());
@@ -137,11 +134,10 @@ public class LoanForecastController {
             UploadHistory uploadHistory = uploadHistoryRepository.findByBatchId(batchId)
                     .orElseThrow(() -> new RuntimeException("Upload history not found"));
             
-            // 删除相关文件
             deleteFileIfExists(uploadHistory.getOriginalFilePath(), "原始文件");
             deleteFileIfExists(uploadHistory.getForecastCsvPath(), "预测CSV文件");
             
-            // 删除数据库记录
+            // Delete db record
             uploadHistoryRepository.delete(uploadHistory);
             
             log.info("Deleted upload history and related files: {}", batchId);
@@ -157,12 +153,12 @@ public class LoanForecastController {
             try {
                 java.nio.file.Path path = java.nio.file.Paths.get(filePath);
                 if (java.nio.file.Files.deleteIfExists(path)) {
-                    log.info("已删除{}: {}", fileType, filePath);
+                    log.info("Deleted {}: {}", fileType, filePath);
                 } else {
-                    log.warn("{}不存在，跳过删除: {}", fileType, filePath);
+                    log.warn("{} does not exist, skipping deletion: {}", fileType, filePath);
                 }
             } catch (Exception e) {
-                log.error("删除{}失败: {}, 错误: {}", fileType, filePath, e.getMessage());
+                log.error("Failed to delete {}: {}, error: {}", fileType, filePath, e.getMessage());
             }
         }
     }
@@ -207,9 +203,9 @@ public class LoanForecastController {
             UploadHistory uploadHistory = uploadHistoryRepository.findByBatchId(batchId)
                     .orElseThrow(() -> new RuntimeException("Upload history not found"));
 
-            // 从保存的原始文件重新生成预测数据
+            // Regenerate forecast data from the saved original file
             if (uploadHistory.getOriginalFilePath() != null && java.nio.file.Files.exists(java.nio.file.Paths.get(uploadHistory.getOriginalFilePath()))) {
-                // 直接从文件路径处理CSV
+                // Process CSV directly from the file path
                 List<LoanForecastData> forecastDataList = csvProcessingService.processCsvFileFromPath(
                     uploadHistory.getOriginalFilePath(),
                     uploadHistory.getForecastStartDate()
@@ -226,8 +222,8 @@ public class LoanForecastController {
         }
     }
 
-    @GetMapping("/health")
-    public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("Loan Forecast Service is healthy");
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("Pong");
     }
 } 

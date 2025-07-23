@@ -1,8 +1,7 @@
 #!/bin/bash
 
-echo "�� Comprehensive Loan Forecast System Test"
+echo "Comprehensive Loan Forecast System Test"
 echo "=========================================="
-echo "ℹ️  系统已简化为单核心服务架构 (loan-forecast-service)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -130,8 +129,8 @@ echo "PostgreSQL: localhost:5432"
 echo "Redis: localhost:6379"
 
 echo -e "\n${YELLOW}Quick Commands:${NC}"
-echo "Restart Backend: ./reload-backend.sh"
-echo "Start Frontend: cd frontend && npm start"
+echo "Rebuild Backend: ./build.sh -b"
+echo "Rebuild Frontend: ./build.sh -f"
 echo "View Logs: docker-compose -f docker/docker-compose.yml logs -f loan-forecast-service"
 
 # Cleanup

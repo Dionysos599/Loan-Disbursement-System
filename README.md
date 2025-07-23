@@ -1,831 +1,407 @@
-# Loan Disbursement Forecasting & Monitoring System
+# 🏦 Loan Disbursement System
 
-A comprehensive web application for monitoring and forecasting construction loan disbursements using S-curve mathematical modeling. This system helps banks manage capital exposure limits and predict cash flow for construction, multifamily, and commercial real estate (CRE) loans through advanced data ingestion and forecasting capabilities.
+A comprehensive loan forecast and portfolio management system designed for American Plus Bank. This system provides advanced loan disbursement predictions using an S-curve algorithm, real-time portfolio visualization, and comprehensive data analytics.
 
-## 🏗️ Architecture Overview
+## 📋 Table of Contents
 
-```
-loan-disbursement-system/
-├── backend/                    # Microservices architecture
-│   ├── disbursement-service/   # Core loan management service
-│   ├── data-ingestion/         # CSV data processing service
-│   ├── forecasting-service/    # Advanced forecasting engine
-│   └── api-gateway/           # API gateway (future)
-├── frontend/                   # React TypeScript application
-├── docker/                     # Docker configuration
-│   ├── docker-compose.yml      # Multi-container setup
-│   ├── build.sh               # Backend build script
-│   ├── test-system.sh         # System test script
-│   └── init.sql               # Database initialization
-├── backend/data/               # Sample data files
-│   └── CLL_report_113124.csv   # Sample CLL report data
-└── docs/                      # Documentation
-```
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Usage Guide](#-usage-guide)
+- [API Documentation](#-api-documentation)
+- [Troubleshooting](#-troubleshooting)
+- [To Contribute](#-to-contribute)
+
+## ✨ Features
+
+### 🎯 Core Capabilities
+- **Real-time Dashboard**: Summary and visualization for forecasted data
+- **CSV Data Upload**: Upload loan data in CSV format
+- **Disbursement Forecasting**: Realistic model for disbursement predictions
+- **Export Functionality**: Check and download forecast results
+
+### 📊 Dashboard Metrics
+- **Total Loans**: Count of loans
+- **Total Loan Amount**: Sum of all loan principal amounts
+- **Highest Forecasted Balance**: Peak projected outstanding balance
+- **Data Points**: Total number of forecast data points generated
+
+### 🔮 Forecasting Algorithm
+- **S-Curve Model**: Sigmoid-based disbursement prediction
+- **Time-based Progress**: Considers project timeline and completion percentage
+- **Extended Date Handling**: Accounts for loan extensions up to 6 months
+- **Dynamic Cutoff**: Automatic zero-balance after extended date + 180 days
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+- **Docker Desktop**: Ensure Docker is installed and running
+- **Git**: For cloning the repository
+- **Minimum 4GB RAM**: For optimal performance
 
-- **Java 17+** (for backend services)
-- **Node.js 18+** (for frontend)
-- **Docker & Docker Compose** (for infrastructure)
-- **Maven 3.6+** (for backend builds)
+### Installation
 
-### 1. Clone and Setup
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/Dionysos599/Loan-Disbursement-System.git
+   cd loan-disbursement-system
+   ```
 
-```bash
-git clone https://github.com/Dionysos599/Loan-Disbursement-System.git
-cd Loan-Disbursement-System
-```
+2. **Start the System**
+   ```bash
+   # Build and start all services
+   ./build.sh
 
-### 2. Start Infrastructure with Docker (Recommended)
+   # Or start individual components
+   ./build.sh --backend-only    # Backend service only
+   ./build.sh --frontend-only   # Frontend application only
+   ./build.sh --no-docker      # Build without Docker containers
+   ```
 
-```bash
-# Navigate to docker directory
-cd docker
+3. **Access the Application**
+   - **Frontend**: http://localhost:3000
+   - **Backend API**: http://localhost:8081
+   - **Health Check**: http://localhost:8081/api/loan-forecast/ping
 
-# Build backend services first
-./build.sh
+4. **Verify Installation**
+   ```bash
+   # Check running services
+   docker ps
+   
+   # Test system functionality
+   ./test-system.sh
+   ```
 
-# Start all services with Docker Compose
-docker-compose up -d
-```
+## 📖 Usage Guide
 
-**Expected Output:**
-```
-Building backend services...
-Building disbursement service...
-[INFO] BUILD SUCCESS
-Building data ingestion service...
-[INFO] BUILD SUCCESS
-Building forecasting service...
-[INFO] BUILD SUCCESS
-All backend services built successfully!
+### 1. Upload Loan Data
 
-Creating loan-postgres ... done
-Creating loan-redis    ... done
-Creating loan-disbursement-service ... done
-Creating loan-data-ingestion-service ... done
-Creating loan-forecasting-service ... done
-Creating loan-frontend ... done
-```
+1. **Access the Upload Interface**
+   - Navigate to http://localhost:3000
+   - Click on "Data Upload" section
 
-### 3. Verify System Status
+2. **Prepare Your CSV File**
+   - Ensure your CSV contains required columns (see [Data Format](#-data-format))
+   - File size limit: 50MB
+   - Supported format: `.csv`
 
-```bash
-# Run comprehensive system test
-./test-system.sh
-```
+3. **Upload Process**
+   - Select your CSV file
+   - Choose forecast start month (e.g., "2024-11-01")
+   - Click "Upload and Process"
+   - Monitor upload progress
 
-**Expected Test Results:**
-```
-🧪 Testing Loan Disbursement System
-==================================
+### 2. Data Format
 
-Testing Infrastructure Services:
-Testing PostgreSQL Database... ✓ PASS
-Testing Redis Cache... ✓ PASS
+#### Required CSV Columns
 
-Testing Backend Services:
-Testing Disbursement Service... ✓ PASS
-Testing Data Ingestion Service... ✓ PASS
-Testing Forecasting Service... ✓ PASS
+| Column Name | Type | Description | Example |
+|-------------|------|-------------|---------|
+| Loan Number | String | Unique loan identifier | "1234567890" |
+| Loan Amount | Number | Principal amount | "500000" |
+| Maturity Date | Date | Original maturity | "12/31/2025" |
+| Extended Date | Date | Extended maturity | "6/30/2026" |
+| Outstanding Balance | Number | Current balance | "350000" |
+| Undisbursed Amount | Number | Remaining to disburse | "150000" |
+| % of Completion | Number | Project completion | "45" |
 
-Testing Frontend:
-Testing React Frontend... ✓ PASS
+#### Date Formats Supported
+- `MM/dd/yyyy` (e.g., "12/31/2025")
+- `M/d/yy` (e.g., "1/5/25")
+- `yyyy-MM-dd` (e.g., "2025-12-31")
 
-Testing CSV Upload:
-Testing CSV file upload... ✓ PASS
-
-✅ System Test Complete!
-```
-
-### 4. Access the Application
-
-- **Frontend:** http://localhost:3000
-- **Disbursement Service:** http://localhost:8080
-- **Data Ingestion Service:** http://localhost:8081
-- **Forecasting Service:** http://localhost:8082
-- **PostgreSQL:** localhost:5432
-- **Redis:** localhost:6379
-
-### 5. Alternative: Manual Service Startup
-
-If you prefer to run services individually:
-
-#### Data Ingestion Service
-```bash
-cd backend/data-ingestion
-mvn clean package
-mvn spring-boot:run
-```
-**Access:** http://localhost:8081
-
-#### Forecasting Service
-```bash
-cd backend/forecasting-service
-mvn clean package
-mvn spring-boot:run
-```
-**Access:** http://localhost:8082
-
-#### Disbursement Service
-```bash
-cd backend/disbursement-service
-mvn clean package
-mvn spring-boot:run
-```
-**Access:** http://localhost:8080
-
-#### Frontend
-```bash
-cd frontend
-npm install
-npm start
-```
-**Access:** http://localhost:3000
-
-## 📊 System Features
-
-### 1. Data Ingestion & Processing
-- **CSV Upload** - Drag-and-drop CSV file upload with validation
-- **Data Processing** - Automatic parsing and cleaning of loan data
-- **Batch Processing** - Handle large datasets with progress tracking
-- **Data Validation** - Comprehensive validation of loan information
-- **Sample Data** - Pre-loaded CLL report with 45 real loan records
-
-### 2. Advanced Forecasting
-- **S-Curve Modeling** - Sigmoid function-based disbursement prediction
-- **Multiple Scenarios** - Optimistic, Conservative, and Linear forecasts
-- **Custom Parameters** - Adjustable steepness and midpoint for S-curve
-- **Confidence Levels** - Statistical confidence indicators for predictions
-
-### 3. Portfolio Dashboard
-- **Total Exposure Overview** - Real-time portfolio exposure across all loan types
-- **Exposure by Type** - Breakdown by Construction, Multifamily, and CRE loans
-- **Monthly Projections** - Forecasted exposure over time
-- **Visual Analytics** - Interactive charts and data visualization
-
-### 4. Loan Management
-- **Loan List** - Searchable and filterable portfolio view
-- **Loan Details** - Individual loan management with progress tracking
-- **S-Curve Visualization** - Disbursement schedule charts
-- **Progress Updates** - Real-time project completion tracking
-
-## 📁 Sample Data
-
-The system includes a sample CLL (Construction Loan List) report with 45 real loan records:
-
-**File:** `backend/data/CLL_report_113124.csv`
-
-**Data Includes:**
-- 45 construction loans totaling $200M+ in exposure
-- Various property types: SFR, PUD, Apartment, Hotel, Industrial, Mixed-Use, etc.
-- Real loan amounts ranging from $1.8M to $20M
-- Current completion percentages and outstanding balances
-- Geographic distribution across Southern California
-
-**Sample Records:**
+#### Sample CSV Structure
 ```csv
-"Loan Number",Customer Name,Loan Amount,"Maturity Date",Property Type,LTC Ratio,LTV Ratio,Interest Rate,"Outstanding Balance","Undisbursed Amount",% of Loan Drawn,% of Completion
-1078966002,"Dali V, LLC","$4,400,000.00",9/15/2025,2 SFR,62%,75%,8.75%,"$1,061,446.60","$3,338,553.40",24%,6%
-1120366001,Bowden Development Inc,"$1,930,000.00",11/27/2024,4 PUD,70%,59%,9.38%,"$1,813,488.26","$0.00",100%,72%
+Loan Number,Customer Name,Loan Amount,Maturity Date,Extended Date,Outstanding Balance,Undisbursed Amount,% of Loan Drawn,% of Completion
+L001234,John Doe,500000,12/31/2025,6/30/2026,350000,150000,70,45
+L001235,Jane Smith,750000,6/30/2026,12/31/2026,600000,150000,80,60
 ```
 
-## 🔧 API Reference
+### 2. View Dashboard
 
-### Data Ingestion Endpoints
+1. **Portfolio Overview**
+   - Loans count
+   - Total loan amount
+   - Highest forecasted balance
+   - Data points generated
+
+2. **Interactive Charts**
+   - Loan forecast timeline
+   - Geographic distribution
+   - Outstanding balance trends
+
+### 3. Export Forecast Data
+
+1. **Access Export Function**
+   - Navigate to upload history
+   - Select desired batch
+   - Click "Download Forecast CSV"
+
+2. **File Content**
+   - Original loan data
+   - Monthly forecast projections
+   - Calculation metadata
+   - Forecast start/end dates
+
+### 4. Monitor Upload History
+
+1. **View Past Uploads**
+   - Check upload status (SUCCESS/FAILED/PROCESSING)
+   - Review processing statistics
+   - Access error logs if available
+
+2. **Batch Management**
+   - Each upload generates unique batch ID
+   - Trace individual loan processing
+   - Download historical forecasts
+
+
+
+
+## 🔗 API Documentation
+
+### Core Endpoints
 
 #### Upload CSV File
 ```http
-POST /api/data-ingestion/upload
+POST /api/loan-forecast/upload
 Content-Type: multipart/form-data
 
-file: [CSV_FILE]
+Parameters:
+- file: CSV file (multipart)
+- startMonth: Forecast start date (YYYY-MM-DD)
+
+Response: DataIngestionResponse with batch ID and processing results
 ```
 
-**Response:**
-```json
-{
-  "batchId": "BATCH_A1B2C3D4",
-  "status": "SUCCESS",
-  "totalRecords": 45,
-  "processedRecords": 45,
-  "failedRecords": 0,
-  "processedAt": "2024-01-15T10:30:00",
-  "message": "Successfully processed 45 loan records"
-}
-```
-
-#### Generate Forecast
+#### Get Upload History
 ```http
-POST /api/data-ingestion/forecast
-Content-Type: application/json
+GET /api/loan-forecast/upload-history
 
-{
-  "batchId": "BATCH_A1B2C3D4",
-  "forecastStartDate": "2024-01-01",
-  "forecastEndDate": "2026-12-31",
-  "forecastModel": "S-curve",
-  "parameters": {
-    "sCurveSteepness": 6.0,
-    "sCurveMidpoint": 0.4,
-    "completionRate": 0.8,
-    "riskAdjustment": 0.1
-  }
-}
+Response: List of all upload batches with metadata
 ```
 
-### Forecasting Endpoints
-
-#### Generate Forecast
+#### Download Forecast CSV
 ```http
-POST /api/forecasting/generate
-Content-Type: application/json
+GET /api/loan-forecast/download/{batchId}
 
-{
-  "loanNumber": "LOAN-001",
-  "totalLoanAmount": 5000000,
-  "currentDrawnAmount": 1000000,
-  "currentCompletion": 20,
-  "startDate": "2024-01-01",
-  "maturityDate": "2025-12-31",
-  "forecastStartDate": "2024-07-01",
-  "forecastEndDate": "2026-06-30",
-  "forecastModel": "S-curve",
-  "steepness": 6.0,
-  "midpoint": 0.4
-}
+Response: CSV file with forecast data
 ```
 
-**Response:**
-```json
-{
-  "forecastId": "FCST_A1B2C3D4",
-  "batchId": "BATCH_A1B2C3D4",
-  "status": "COMPLETED",
-  "generatedAt": "2024-01-15T10:35:00",
-  "forecastStartDate": "2024-07-01T00:00:00",
-  "forecastEndDate": "2026-06-30T00:00:00",
-  "forecastModel": "S-curve",
-  "forecastData": [
-    {
-      "loanNumber": "LOAN-001",
-      "date": "2024-07-01",
-      "cumulativeAmount": 1250000,
-      "monthlyAmount": 250000,
-      "percentComplete": 25.0,
-      "forecastType": "forecast",
-      "scenarioName": "S-Curve",
-      "confidenceLevel": 0.85
-    }
-  ],
-  "summary": {
-    "totalForecastedAmount": 5000000,
-    "averageMonthlyDisbursement": 208333,
-    "peakMonth": "2025-03-01",
-    "peakAmount": 350000,
-    "totalDataPoints": 24
-  }
-}
-```
-
-### Loan Endpoints
-
-#### Get Loan Details
+#### Get Forecast Data
 ```http
-GET /api/loans/{loanId}
+GET /api/loan-forecast/upload-history/{batchId}/forecast-data
+
+Response: JSON array of loan forecast data
 ```
 
-**Response:**
-```json
-{
-  "loanId": "LOAN-001",
-  "customerName": "ABC Construction Co.",
-  "loanAmount": 2500000,
-  "startDate": "2024-01-15",
-  "maturityDate": "2025-01-15",
-  "propertyType": "Construction",
-  "currentProgress": {
-    "percentComplete": 0.35,
-    "outstandingBalance": 875000,
-    "asOfDate": "2024-07-01"
-  },
-  "schedule": [
-    {
-      "month": "2024-01-01",
-      "cumulativeAmount": 2472.62,
-      "monthlyAmount": 2472.62
-    }
-  ]
-}
-```
-
-#### Calculate Schedule
+#### Health Check
 ```http
-POST /api/loans/{loanId}/calculate-schedule
-Content-Type: application/json
+GET /api/loan-forecast/ping
 
-{
-  "fromDate": "2024-01-01",
-  "toDate": "2025-12-31",
-  "currentComplete": 0.35
-}
+Response: Pong
 ```
 
-#### Update Progress
-```http
-PUT /api/loans/{loanId}/progress
-Content-Type: application/json
-
-{
-  "percentComplete": 0.45,
-  "outstandingBalance": 750000,
-  "asOfDate": "2024-08-01"
-}
-```
-
-#### Extend Maturity
-```http
-PUT /api/loans/{loanId}/extend
-Content-Type: application/json
-
-{
-  "newMaturityDate": "2025-06-15"
-}
-```
-
-### Portfolio Endpoints
-
-#### Get Portfolio Exposure
-```http
-GET /api/portfolio/exposure
-```
-
-**Response:**
-```json
-{
-  "totalExposure": 9300000,
-  "exposureByType": {
-    "Construction": 2500000,
-    "Multifamily": 1800000,
-    "CRE": 5000000
-  },
-  "monthlyProjections": [
-    {
-      "month": "2024-08-01",
-      "totalExposure": 9500000,
-      "constructionExposure": 2600000,
-      "multifamilyExposure": 1850000,
-      "creExposure": 5050000
-    }
-  ]
-}
-```
-
-## 🛠️ Development Guide
-
-### Backend Development
-
-#### Project Structure
-```
-backend/disbursement-service/src/main/java/com/bankplus/disbursement_service/
-├── DisbursementServiceApplication.java    # Main application class
-├── Loan.java                              # JPA entity
-├── LoanProgress.java                      # JPA entity
-├── LoanSchedule.java                      # JPA entity
-├── LoanRepository.java                    # Data access
-├── LoanService.java                       # Business logic
-├── DisbursementCalculator.java           # S-curve calculations
-├── LoanController.java                    # REST endpoints
-├── PortfolioController.java               # Portfolio endpoints
-├── RedisConfig.java                       # Redis configuration
-└── dto/                                   # Data transfer objects
-    ├── LoanDetailResponse.java
-    ├── CalculateScheduleRequest.java
-    ├── UpdateProgressRequest.java
-    └── ExtendMaturityRequest.java
-```
-
-#### Adding New Features
-
-1. **Create Entity** (if needed):
-```java
-@Entity
-@Table(name = "new_table")
-public class NewEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    // Add fields with appropriate annotations
-}
-```
-
-2. **Create Repository**:
-```java
-public interface NewEntityRepository extends JpaRepository<NewEntity, Long> {
-    // Add custom query methods if needed
-}
-```
-
-3. **Create Service**:
-```java
-@Service
-public class NewService {
-    @Autowired
-    private NewEntityRepository repository;
-    
-    // Add business logic methods
-}
-```
-
-4. **Create Controller**:
-```java
-@RestController
-@RequestMapping("/api/new-feature")
-public class NewController {
-    @Autowired
-    private NewService service;
-    
-    @GetMapping
-    public ResponseEntity<?> getData() {
-        // Implement endpoint
-    }
-}
-```
-
-5. **Add Tests**:
-```java
-@SpringBootTest
-class NewServiceTests {
-    @Test
-    void testNewFeature() {
-        // Add test cases
-    }
-}
-```
-
-#### S-Curve Formula Implementation
-
-The core S-curve calculation is in `DisbursementCalculator.java`:
-
-```java
-// Excel formula translated to Java:
-// =IF(R$4 > $E5 + 181, 0, $M5 + $N5 * (1 / (1 + EXP(-12 * ((($P5 + ((R$4 - $Q$4)/($E5 - $Q$4))*(1 - $P5)) - 0.5))))))
-
-public static BigDecimal calculateDisbursement(
-    LocalDate forecastDate,
-    LocalDate maturityDate,
-    BigDecimal outstandingBalance,
-    BigDecimal undisbursedAmount,
-    double percentComplete,
-    LocalDate startDate
-) {
-    // Check 181-day cutoff
-    if (forecastDate.isAfter(maturityDate.plusDays(181))) {
-        return BigDecimal.ZERO;
-    }
-    
-    // Calculate time progress
-    double timeProgress = (double) (forecastDate.toEpochDay() - startDate.toEpochDay()) /
-                         (maturityDate.toEpochDay() - startDate.toEpochDay());
-    
-    // Calculate S-curve input
-    double x = percentComplete + timeProgress * (1 - percentComplete);
-    
-    // Apply sigmoid function
-    double sCurve = 1.0 / (1.0 + Math.exp(-12.0 * (x - 0.5)));
-    
-    // Calculate final amount
-    return outstandingBalance.add(undisbursedAmount.multiply(BigDecimal.valueOf(sCurve)));
-}
-```
-
-### Frontend Development
-
-#### Project Structure
-```
-frontend/src/
-├── App.tsx                    # Main application component
-├── types/
-│   └── loan.ts               # TypeScript interfaces
-├── services/
-│   └── api.ts                # API service functions
-├── components/
-│   ├── Layout.tsx            # Navigation and theme
-│   ├── PortfolioDashboard.tsx # Portfolio overview
-│   ├── LoanList.tsx          # Loan portfolio list
-│   ├── LoanDetails.tsx       # Individual loan management
-│   ├── DataUpload.tsx        # CSV file upload component
-│   └── ForecastVisualization.tsx # Forecast charts and tables
-└── index.tsx                 # Application entry point
-```
-
-#### Adding New Components
-
-1. **Create Component**:
-```typescript
-import React from 'react';
-import { Box, Typography } from '@mui/material';
-
-interface NewComponentProps {
-  data: any;
-  onAction: (id: string) => void;
-}
-
-const NewComponent: React.FC<NewComponentProps> = ({ data, onAction }) => {
-  return (
-    <Box>
-      <Typography variant="h6">New Component</Typography>
-      {/* Add your component content */}
-    </Box>
-  );
-};
-
-export default NewComponent;
-```
-
-2. **Add to App.tsx**:
-```typescript
-import NewComponent from './components/NewComponent';
-
-// Add to renderContent() function
-case 'new-feature':
-  return <NewComponent data={data} onAction={handleAction} />;
-```
-
-3. **Add Navigation** (in Layout.tsx):
-```typescript
-const menuItems = [
-  // ... existing items
-  { text: 'New Feature', icon: <NewIcon />, page: 'new-feature' },
-];
-```
-
-#### Styling Guidelines
-
-- Use Material-UI components for consistency
-- Follow the established theme in `Layout.tsx`
-- Use responsive design with breakpoints:
-  - `xs`: 0-600px (mobile)
-  - `sm`: 600-960px (tablet)
-  - `md`: 960-1280px (desktop)
-  - `lg`: 1280px+ (large desktop)
-
-#### State Management
-
-The application uses React hooks for state management:
-
-```typescript
-// Local state
-const [data, setData] = useState<DataType[]>([]);
-const [loading, setLoading] = useState(false);
-const [error, setError] = useState<string | null>(null);
-
-// API calls
-const loadData = async () => {
-  try {
-    setLoading(true);
-    const response = await api.getData();
-    setData(response);
-  } catch (err) {
-    setError('Failed to load data');
-  } finally {
-    setLoading(false);
-  }
-};
-```
-
-## 🧪 Testing
-
-### Backend Testing
-
-```bash
-cd backend/disbursement-service
-
-# Run all tests
-mvn test
-
-# Run specific test class
-mvn test -Dtest=DisbursementCalculatorTests
-
-# Run with coverage
-mvn test jacoco:report
-```
-
-### Frontend Testing
-
-```bash
-cd frontend
-
-# Run tests
-npm test
-
-# Run tests with coverage
-npm test -- --coverage
-
-# Run tests in watch mode
-npm test -- --watch
-```
-
-### System Testing
-
-```bash
-cd docker
-
-# Run comprehensive system test
-./test-system.sh
-```
-
-## 🚀 Deployment
-
-### Production Build
-
-#### Backend
-```bash
-cd backend/disbursement-service
-mvn clean package -Pprod
-```
-
-#### Frontend
-```bash
-cd frontend
-npm run build
-```
-
-### Docker Deployment
-
-```bash
-# Build and run with Docker Compose
-cd docker
-./build.sh
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-#### Backend (application.yml)
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/loan_disbursement
-    username: ${DB_USERNAME:loan_app}
-    password: ${DB_PASSWORD:loan_password}
-  
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-  
-  jpa:
-    hibernate:
-      ddl-auto: ${DDL_AUTO:validate}
-```
-
-#### Frontend (.env)
-```env
-REACT_APP_API_URL=http://localhost:8080/api
-REACT_APP_ENVIRONMENT=development
-```
-
-### Database Configuration
-
-The system uses PostgreSQL with the following default settings:
-- **Host:** localhost
-- **Port:** 5432
-- **Database:** loan_disbursement
-- **Username:** loan_app
-- **Password:** loan_password
-
-### Redis Configuration
-
-Redis is used for caching with default settings:
-- **Host:** localhost
-- **Port:** 6379
-- **Cache Prefix:** loan-disbursement:
-
-## 🐛 Troubleshooting
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-#### Backend Won't Start
-1. **Database Connection Error:**
-   ```bash
-   # Check if PostgreSQL is running
-   docker ps | grep postgres
-   
-   # Check database logs
-   docker logs loan-postgres
-   ```
+#### 1. Upload Failed: Network Error
+**Symptoms**: Upload fails with "Network error" message
 
-2. **Port Already in Use:**
-   ```bash
-   # Find process using port 8080
-   lsof -i :8080
-   
-   # Kill process
-   kill -9 <PID>
-   ```
+**Solutions**:
+- Verify backend service is running: `docker ps`
+- Check backend logs: `docker logs loan-forecast-service`
+- Ensure CSV format matches requirements
+- Verify Docker Desktop is running
 
-3. **Maven Plugin Issues:**
+#### 2. Docker Build Failures
+**Symptoms**: Build script reports Docker errors
+
+**Solutions**:
+- Start Docker Desktop
+- Clean Docker cache: `docker system prune`
+- Rebuild services: `./build.sh --docker-only`
+
+#### 3. CSV Processing Errors
+**Symptoms**: "Required column missing" errors
+
+**Solutions**:
+- Verify all required columns are present
+- Check for hidden characters in column headers
+- Ensure proper CSV encoding (UTF-8)
+- Remove empty rows/columns
+
+#### 4. Memory Issues
+**Symptoms**: Services fail to start or crash
+
+**Solutions**:
+- Increase Docker memory allocation (minimum 4GB)
+- Close unnecessary applications
+- Monitor system resources: `docker stats`
+
+### Log Locations
+- **Backend Logs**: `docker logs loan-forecast-service`
+- **Frontend Logs**: `docker logs loan-forecast-frontend`
+- **Database Logs**: `docker logs loan-forecast-postgres`
+
+### Performance Optimization
+- Use SSD storage for Docker volumes
+- Allocate sufficient RAM to Docker
+- Process smaller CSV files (< 10MB) for better performance
+- Clear browser cache if frontend issues persist
+
+## 🤝 To Contribute
+
+### Development Setup
+
+#### Prerequisites
+- **Java 17+**: For backend development
+- **Node.js 18+**: For frontend development
+- **Maven 3.8+**: For backend builds
+- **Docker Desktop**: For containerization
+
+#### Local Development Environment
+
+1. **Backend Development**
    ```bash
-   # Clean and rebuild
+   cd backend/loan-forecast
    mvn clean install
-   
-   # Check Maven version
-   mvn --version
+   mvn spring-boot:run
+   # Backend runs on http://localhost:8081
    ```
 
-#### Frontend Build Errors
-1. **Node Modules Issues:**
+2. **Frontend Development**
    ```bash
-   rm -rf node_modules package-lock.json
+   cd frontend
    npm install
+   npm start
+   # Frontend runs on http://localhost:3000
    ```
 
-2. **TypeScript Errors:**
+3. **Database Setup** (Optional for local testing)
    ```bash
-   # Check TypeScript configuration
-   npx tsc --noEmit
+   cd docker
+   docker-compose up postgres redis -d
    ```
 
-#### Docker Issues
-1. **Port Conflicts:**
-   ```bash
-   # Check what's using the port
-   lsof -i :8082
-   
-   # Stop conflicting services
-   docker-compose down
-   
-   # Restart with clean state
-   docker-compose up -d
-   ```
+### Code Structure
 
-2. **Build Failures:**
-   ```bash
-   # Clean Docker cache
-   docker system prune -a
-   
-   # Rebuild from scratch
-   ./build.sh
-   docker-compose up -d --build
-   ```
-
-#### Database Schema Issues
-```sql
--- Check table structure
-\d loans
-\d loan_progress
-\d loan_schedule
-
--- Fix missing columns if needed
-ALTER TABLE loans ADD COLUMN customer_name VARCHAR(255) NOT NULL DEFAULT 'Unknown Customer';
+```
+loan-disbursement-system/
+├── backend/loan-forecast/         # Spring Boot backend service
+│   ├── src/main/java/             # Java source code
+│   ├── src/main/resources/        # Configuration files
+│   └── pom.xml                    # Maven dependencies
+├── frontend/                      # React frontend application
+│   ├── src/components/            # React components
+│   ├── src/services/              # API service layer
+│   └── package.json               # npm dependencies
+├── docker/                        # Docker configuration
+│   ├── docker-compose.yml         # Service orchestration
+│   └── init.sql                   # Database initialization
+└── build.sh                       # Build automation script
 ```
 
-### Logs
+### Development Guidelines
 
-#### Backend Logs
+#### Backend Development
+
+1. **Code Standards**
+   - Follow Java naming conventions
+   - Use Lombok for boilerplate reduction
+   - Add comprehensive logging with @Slf4j
+   - Write unit tests for service layer
+
+2. **API Development**
+   - Use RESTful endpoints
+   - Include proper HTTP status codes
+   - Add @CrossOrigin for frontend integration
+   - Document endpoints with clear comments
+
+3. **Database Changes**
+   - Use JPA for data access
+   - Include database migrations
+   - Test with PostgreSQL locally
+
+#### Frontend Development
+
+1. **Code Standards**
+   - Use TypeScript for type safety
+   - Follow React functional component patterns
+   - Implement proper error handling
+   - Use Material-UI components consistently
+
+2. **State Management**
+   - Use React hooks for local state
+   - Implement proper loading states
+   - Handle errors gracefully
+
+3. **API Integration**
+   - Use centralized API service
+   - Implement proper error handling
+   - Add loading indicators
+
+### Build Process
+
+#### Build Script Options
 ```bash
-# View application logs
-docker logs loan-disbursement-service
-docker logs loan-data-ingestion-service
-docker logs loan-forecasting-service
-
-# View infrastructure logs
-docker logs loan-postgres
-docker logs loan-redis
+./build.sh                    # Full build (backend + frontend + Docker)
+./build.sh --backend-only     # Backend Maven + Docker build
+./build.sh --frontend-only    # Frontend npm + Docker build
+./build.sh --no-docker       # Build without Docker containers
+./build.sh --docker-only     # Docker build only
 ```
 
-#### Frontend Logs
+#### Testing
 ```bash
-# View frontend logs
-docker logs loan-frontend
+# Backend tests
+cd backend/loan-forecast && mvn test
 
-# Or check browser console (F12)
+# Frontend tests
+cd frontend && npm test
+
+# Integration tests
+./test-system.sh
 ```
 
-## 📚 Additional Resources
+### Contribution Workflow
 
-- [Spring Boot Documentation](https://spring.io/projects/spring-boot)
-- [React Documentation](https://reactjs.org/docs/)
-- [Material-UI Documentation](https://mui.com/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [Redis Documentation](https://redis.io/documentation)
+1. **Create Feature Branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-## 🤝 Contributing
+2. **Development**
+   - Write code following established patterns
+   - Add tests for new functionality
+   - Update documentation as needed
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/new-feature`
-3. Make your changes
-4. Add tests for new functionality
-5. Run all tests: `mvn test` (backend) and `npm test` (frontend)
-6. Commit your changes: `git commit -am 'Add new feature'`
-7. Push to the branch: `git push origin feature/new-feature`
-8. Submit a pull request
+3. **Testing**
+   - Run unit tests: `mvn test` (backend), `npm test` (frontend)
+   - Test full system: `./build.sh && ./test-system.sh`
+   - Verify Docker builds successfully
 
-## 📄 License
+4. **Submit Pull Request**
+   - Ensure all tests pass
+   - Update README if needed
+   - Include clear description of changes
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+### Key Areas for Contribution
+
+- **Algorithm Enhancement**: Improve S-curve forecasting accuracy
+- **Dashboard Features**: Add new visualization components
+- **Performance Optimization**: Enhance large file processing
+- **Testing Coverage**: Expand unit and integration tests
+- **Documentation**: Improve user guides and API docs
+- **Mobile Responsiveness**: Enhance mobile user experience
+
+### Getting Help
+
+- **Documentation**: Check existing README and code comments
+- **Issues**: Create GitHub issues for bugs or feature requests
+- **Code Review**: All contributions require peer review
+- **Testing**: Ensure all tests pass before submitting
+
+---
+
+For questions or support, please open an issue in the project repository or contact the development team. 

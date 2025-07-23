@@ -7,7 +7,8 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Loan forecast related interfaces - 核心服务API
+// =========== Core service API ===========
+// Loan forecast related interfaces
 export const loanForecastAPI = {
   // Upload CSV file
   uploadCSV: async (file: File, startMonth: string) => {
@@ -55,7 +56,7 @@ export const loanForecastAPI = {
   
   // Health check
   healthCheck: async () => {
-    const response = await api.get('/loan-forecast/health');
+    const response = await api.get('/loan-forecast/ping');
     return response.data;
   },
   
@@ -65,7 +66,7 @@ export const loanForecastAPI = {
   },
 };
 
-// 为了向后兼容，保留旧的API名称
+// For backward compatibility, keep the old API name
 export const dataIngestionAPI = loanForecastAPI;
 
 export default api; 

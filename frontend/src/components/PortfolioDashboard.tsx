@@ -23,8 +23,6 @@ import {
   AttachMoney as AttachMoneyIcon,
 } from '@mui/icons-material';
 import { 
-  BarChart, 
-  Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -34,10 +32,8 @@ import {
   Area,
 } from 'recharts';
 
-// API imports
 import { loanForecastAPI } from '../services/api';
 
-// Type imports
 import { LoanForecastData } from '../types/loan';
 
 const PortfolioDashboard: React.FC = () => {
