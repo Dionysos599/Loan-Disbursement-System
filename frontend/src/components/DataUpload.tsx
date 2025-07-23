@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -45,11 +45,55 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
   const [uploadHistory, setUploadHistory] = useState<UploadHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<any>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   // Load upload history on component mount
   useEffect(() => {
     fetchUploadHistory();
   }, []);
+
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:8081/ws/progress');
+    wsRef.current = ws;
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        setProgress(msg);
+      } catch {}
+    };
+    ws.onerror = (e) => {
+      console.error('WebSocket error:', e);
+    };
+    ws.onclose = () => {
+      console.log('WebSocket closed');
+    };
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    setProgress(null); // clear progress when select new file
+    setUploadResult(null);
+    if (file) {
+      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        setSelectedFile(file);
+        setError(null);
+      } else {
+        setError('Please select a CSV file');
+        setSelectedFile(null);
+      }
+    }
+  };
+
+  // refresh history when success
+  useEffect(() => {
+    if (progress && progress.status === 'SUCCESS') {
+      fetchUploadHistory();
+    }
+  }, [progress]);
 
   const fetchUploadHistory = async () => {
     try {
@@ -61,19 +105,6 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
       setError('Failed to fetch upload history');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
-      setSelectedFile(file);
-        setError(null);
-      } else {
-        setError('Please select a CSV file');
-        setSelectedFile(null);
-      }
     }
   };
 
@@ -261,17 +292,19 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
             </Alert>
           )}
 
-          {uploadResult && (
-            <Alert 
-              severity={uploadResult.status === 'SUCCESS' ? 'success' : 'error'} 
-              sx={{ mt: 2, borderRadius: 2 }}
-            >
-              <Typography variant="body2">
-                <strong>Status:</strong> {uploadResult.status}<br />
-                <strong>Total Records:</strong> {uploadResult.totalRecords}<br />
-                <strong>Processed:</strong> {uploadResult.processedRecords}<br />
-                <strong>Failed:</strong> {uploadResult.failedRecords}<br />
-                <strong>Message:</strong> {uploadResult.message}
+          {progress && progress.status === 'PROCESSING' && (
+            <Alert severity="info" sx={{ mt: 2, borderRadius: 2, textAlign: 'left' }}>
+              <Typography variant="body2" sx={{ textAlign: 'left' }}>
+                File received, start processing...
+              </Typography>
+            </Alert>
+          )}
+          {progress && progress.status === 'SUCCESS' && (
+            <Alert severity="info" sx={{ mt: 2, borderRadius: 2, textAlign: 'left' }}>
+              <Typography variant="body2" sx={{ textAlign: 'left' }}>
+                <strong>Total Records:</strong> {progress.totalRecords}<br />
+                <strong>Processed:</strong> {progress.processedRecords}<br />
+                <strong>Time:</strong> {progress.timestamp ? new Date(progress.timestamp).toLocaleTimeString() : ''}
               </Typography>
             </Alert>
           )}

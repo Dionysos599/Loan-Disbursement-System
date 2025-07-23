@@ -1,7 +1,6 @@
 package com.bankplus.loan_forecast.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.config.MeterFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer;

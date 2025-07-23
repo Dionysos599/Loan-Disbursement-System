@@ -28,7 +28,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Service
 @Slf4j
 public class CsvProcessingService {
-    private final MeterRegistry meterRegistry;
     private final Counter successCounter;
     private final Counter failureCounter;
     private final Timer batchProcessingTimer;
@@ -36,14 +35,13 @@ public class CsvProcessingService {
 
     @Autowired
     public CsvProcessingService(MeterRegistry meterRegistry) {
-        this.meterRegistry = meterRegistry;
         this.successCounter = meterRegistry.counter("batch_processing_success");
         this.failureCounter = meterRegistry.counter("batch_processing_failure");
         this.batchProcessingTimer = meterRegistry.timer("batch_processing_duration");
         Gauge.builder("active_batch_count", CsvProcessingService::getActiveBatchCount)
                 .description("Number of active batch processing jobs")
                 .register(meterRegistry);
-        // 初始化一次，确保指标被采集
+        // Initialize once to ensure metrics are collected
         this.successCounter.increment(0.0);
         this.failureCounter.increment(0.0);
         this.batchProcessingTimer.record(0, java.util.concurrent.TimeUnit.MILLISECONDS);
@@ -95,7 +93,7 @@ public class CsvProcessingService {
     /**
      * Only extract the required columns, ignore all other columns
      */
-    private List<CsvLoanData> processCsvData(Reader reader) throws IOException {
+    public List<CsvLoanData> processCsvData(Reader reader) throws IOException {
         List<CsvLoanData> loanDataList = new ArrayList<>();
         
         try (CSVReader csvReader = new CSVReader(reader)) {

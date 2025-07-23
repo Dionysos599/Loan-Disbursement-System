@@ -30,6 +30,14 @@ spring:
       max-request-size: 10MB
   zipkin:
     base-url: http://zipkin:9411
+  kafka:
+    bootstrap-servers: kafka:9092
+    streams:
+      application-id: loan-forecast-streams
+    topics:
+      file-upload-events: file-upload-events
+      cleaned-data-topic: cleaned-data-topic
+      progress-updates: progress-updates
 
 logging:
   level:

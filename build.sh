@@ -148,6 +148,7 @@ case $BUILD_MODE in
         build_docker
         ;;
     "no-docker")
+        docker-compose down
         build_backend
         build_frontend
         ;;
