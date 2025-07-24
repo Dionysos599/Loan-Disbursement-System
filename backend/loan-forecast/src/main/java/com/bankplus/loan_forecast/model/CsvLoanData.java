@@ -5,8 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -38,17 +36,4 @@ public class CsvLoanData {
     
     @CsvBindByName(column = "% of Completion")
     private String percentOfCompletion;
-
-    private BigDecimal parseBigDecimal(String value) {
-        try {
-            if (value == null || value.trim().isEmpty()) {
-                return BigDecimal.ZERO;
-            }
-            // Remove currency symbols, commas, and spaces
-            String cleanValue = value.replaceAll("[$,%\\s]", "");
-            return new BigDecimal(cleanValue);
-        } catch (NumberFormatException e) {
-            return BigDecimal.ZERO;
-        }
-    }
 } 
