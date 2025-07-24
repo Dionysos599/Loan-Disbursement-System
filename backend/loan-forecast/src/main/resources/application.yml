@@ -4,12 +4,10 @@ server:
 spring:
   application:
     name: loan-forecast-service
-  
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
-  
   datasource:
     url: jdbc:postgresql://postgres:5432/loan_forecast
     username: loan_user
@@ -18,7 +16,6 @@ spring:
   redis:
     host: redis
     port: 6379
-  
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -27,11 +24,20 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  zipkin:
+    base-url: http://zipkin:9411
+  kafka:
+    bootstrap-servers: kafka:9092
+    streams:
+      application-id: loan-forecast-streams
+    topics:
+      file-upload-events: file-upload-events
+      cleaned-data-topic: cleaned-data-topic
+      progress-updates: progress-updates
 
 logging:
   level:
@@ -40,16 +46,22 @@ logging:
 
 forecasting:
   service:
-    url: http://loan-forecasting-service:8082 
+    url: http://loan-forecasting-service:8082
 
 management:
   endpoints:
     web:
       exposure:
-        include: '*'
+        include: prometheus,health,info
   endpoint:
+    prometheus:
+      enabled: true
     health:
-      show-details: always 
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
 file:
   input-dir: backend/data/Input/

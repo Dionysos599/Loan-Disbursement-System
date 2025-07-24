@@ -3,9 +3,9 @@ package com.bankplus.loan_forecast.controller;
 import com.bankplus.loan_forecast.dto.DataIngestionResponse;
 import com.bankplus.loan_forecast.dto.LoanForecastData;
 import com.bankplus.loan_forecast.model.UploadHistory;
-import com.bankplus.loan_forecast.model.CsvLoanData;
 import com.bankplus.loan_forecast.repository.UploadHistoryRepository;
 import com.bankplus.loan_forecast.service.CsvProcessingService;
+import com.bankplus.loan_forecast.service.ReactiveUploadService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/loan-forecast")
@@ -28,15 +29,17 @@ public class LoanForecastController {
     @Autowired
     private UploadHistoryRepository uploadHistoryRepository;
 
+    @Autowired
+    private ReactiveUploadService reactiveUploadService;
+
     @PostMapping("/upload")
-    public ResponseEntity<DataIngestionResponse> uploadCsvFile(
+    public Mono<ResponseEntity<DataIngestionResponse>> uploadCsvFile(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("startMonth") String startMonth // 例如 "2024-11-01"
+            @RequestParam("startMonth") String startMonth
     ) {
         log.info("Received CSV file upload: {} with startMonth {}", file.getOriginalFilename(), startMonth);
-        
+
         String batchId = csvProcessingService.generateBatchId();
-        
         UploadHistory uploadHistory = UploadHistory.builder()
                 .batchId(batchId)
                 .originalFilename(file.getOriginalFilename())
@@ -45,9 +48,7 @@ public class LoanForecastController {
                 .forecastStartDate(startMonth)
                 .uploadedAt(LocalDateTime.now())
                 .build();
-        
         try {
-            // Save the original file to the local disk (using stream copy, compatible with all environments)
             String inputDir = new java.io.File("backend/data/Input/").getAbsoluteFile().toString();
             java.nio.file.Files.createDirectories(java.nio.file.Paths.get(inputDir));
             String savedFileName = batchId + "_" + file.getOriginalFilename();
@@ -55,50 +56,28 @@ public class LoanForecastController {
             try (java.io.InputStream in = file.getInputStream()) {
                 java.nio.file.Files.copy(in, savedFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
-            
             uploadHistory.setOriginalFilePath(savedFilePath.toString());
             uploadHistoryRepository.save(uploadHistory);
-            
-            // Parse the original CSV to a list of objects
-            List<CsvLoanData> loanDataList = csvProcessingService.processCsvFile(file);
-            List<LoanForecastData> forecastDataList = csvProcessingService.convertToLoanForecastData(loanDataList, startMonth);
-
-            String forecastCsvPath = csvProcessingService.generateForecastCsvWithOriginalFormat(loanDataList, forecastDataList, file.getOriginalFilename(), startMonth);
-            uploadHistory.setForecastCsvPath(forecastCsvPath);
-            uploadHistoryRepository.save(uploadHistory);
-
-            uploadHistory.setTotalRecords(loanDataList.size());
-            uploadHistory.setProcessedRecords(forecastDataList.size());
-            uploadHistory.setFailedRecords(loanDataList.size() - forecastDataList.size());
-            uploadHistory.setUploadStatus("SUCCESS");
-            uploadHistory.setProcessedAt(LocalDateTime.now());
-            uploadHistoryRepository.save(uploadHistory);
-            
-            DataIngestionResponse response = DataIngestionResponse.builder()
-                    .batchId(batchId)
-                    .status("SUCCESS")
-                    .totalRecords(loanDataList.size())
-                    .processedRecords(forecastDataList.size())
-                    .failedRecords(loanDataList.size() - forecastDataList.size())
-                    .processedAt(LocalDateTime.now())
-                    .message("Successfully processed " + forecastDataList.size() + " loan records with forecast data")
-                    .loanForecasts(forecastDataList)
-                    .build();
-            return ResponseEntity.ok(response);
+            // Asynchronously write to Kafka, return batchId immediately
+            return reactiveUploadService.sendFileUploadEvent(batchId, savedFilePath.toString(), startMonth)
+                    .thenReturn(ResponseEntity.ok(
+                        DataIngestionResponse.builder()
+                            .batchId(batchId)
+                            .status("PROCESSING")
+                            .message("File received, processing started asynchronously.")
+                            .build()
+                    ));
         } catch (Exception e) {
             log.error("Error processing CSV upload: {}", e.getMessage(), e);
-            
-            // Update the upload history to a failed status
             uploadHistory.setUploadStatus("FAILED");
             uploadHistory.setErrorMessage(e.getMessage());
             uploadHistory.setProcessedAt(LocalDateTime.now());
             uploadHistoryRepository.save(uploadHistory);
-            
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(DataIngestionResponse.builder()
                             .status("FAILED")
                             .message("Error processing CSV upload: " + e.getMessage())
-                            .build());
+                            .build()));
         }
     }
 
@@ -134,8 +113,8 @@ public class LoanForecastController {
             UploadHistory uploadHistory = uploadHistoryRepository.findByBatchId(batchId)
                     .orElseThrow(() -> new RuntimeException("Upload history not found"));
             
-            deleteFileIfExists(uploadHistory.getOriginalFilePath(), "原始文件");
-            deleteFileIfExists(uploadHistory.getForecastCsvPath(), "预测CSV文件");
+            deleteFileIfExists(uploadHistory.getOriginalFilePath(), "Original file");
+            deleteFileIfExists(uploadHistory.getForecastCsvPath(), "Forecast file");
             
             // Delete db record
             uploadHistoryRepository.delete(uploadHistory);
