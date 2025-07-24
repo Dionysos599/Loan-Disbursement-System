@@ -1,6 +1,6 @@
 # 🏦 Loan Disbursement System
 
-A comprehensive loan forecast and portfolio management system designed for American Plus Bank. This system provides advanced loan disbursement predictions using an S-curve algorithm, real-time portfolio visualization, and comprehensive data analytics.
+A comprehensive loan forecast and portfolio management system designed for American Plus Bank. This system provides loan disbursement predictions using a sigmoid model, real-time visualization, and comprehensive data analytics.
 
 ## 📋 Table of Contents
 
@@ -14,19 +14,19 @@ A comprehensive loan forecast and portfolio management system designed for Ameri
 ## ✨ Features
 
 ### 🎯 Core Capabilities
-- **Real-time Dashboard**: Summary and visualization for forecasted data
 - **CSV Data Upload**: Upload loan data in CSV format
+- **Forecast Dashboard**: Click any processed file to view a corresponding dedicated dashboard with analytics and charts
 - **Disbursement Forecasting**: Realistic model for disbursement predictions
 - **Export Functionality**: Check and download forecast results
 
 ### 📊 Dashboard Metrics
 - **Total Loans**: Count of loans
 - **Total Loan Amount**: Sum of all loan principal amounts
-- **Highest Forecasted Balance**: Peak projected outstanding balance
+- **Max Montly Disbursement**: Peak projected outstanding balance
 - **Data Points**: Total number of forecast data points generated
 
 ### 🔮 Forecasting Algorithm
-- **S-Curve Model**: Sigmoid-based disbursement prediction
+- **Sigmoid Model**: S-curve disbursement prediction
 - **Time-based Progress**: Considers project timeline and completion percentage
 - **Extended Date Handling**: Accounts for loan extensions up to 6 months
 - **Dynamic Cutoff**: Automatic zero-balance after extended date + 180 days
@@ -52,9 +52,9 @@ A comprehensive loan forecast and portfolio management system designed for Ameri
    ./build.sh
 
    # Or start individual components
-   ./build.sh --backend-only    # Backend service only
-   ./build.sh --frontend-only   # Frontend application only
-   ./build.sh --no-docker      # Build without Docker containers
+   ./build.sh --b    # Backend service only
+   ./build.sh --f    # Frontend application only
+   ./build.sh --nd   # Build without Docker containers
    ```
 
 3. **Access the Application**
@@ -118,13 +118,16 @@ L001235,Jane Smith,750000,6/30/2026,12/31/2026,600000,150000,80,60
 
 ### 2. View Dashboard
 
-1. **Portfolio Overview**
+1. **Upload for Forecast Dashboard**
+   - Click any row in the Processed Forecast table to open a dedicated dashboard for that file
+
+2. **Portfolio Overview**
    - Loans count
-   - Total loan amount
-   - Highest forecasted balance
+   - Total loan amount (with two decimal places, in millions)
+   - Max monthly disbursement (peak sum of all loans in any month, two decimal places, in millions)
    - Data points generated
 
-2. **Interactive Charts**
+3. **Interactive Charts**
    - Loan forecast timeline
    - Geographic distribution
    - Outstanding balance trends
@@ -132,14 +135,12 @@ L001235,Jane Smith,750000,6/30/2026,12/31/2026,600000,150000,80,60
 ### 3. Export Forecast Data
 
 1. **Access Export Function**
-   - Navigate to upload history
-   - Select desired batch
-   - Click "Download Forecast CSV"
+   - Select desired forecast data
+   - Click the download button
 
 2. **File Content**
-   - Original loan data
+   - Forecast loan data
    - Monthly forecast projections
-   - Calculation metadata
    - Forecast start/end dates
 
 ### 4. Monitor Upload History
@@ -152,10 +153,7 @@ L001235,Jane Smith,750000,6/30/2026,12/31/2026,600000,150000,80,60
 2. **Batch Management**
    - Each upload generates unique batch ID
    - Trace individual loan processing
-   - Download historical forecasts
-
-
-
+   - Download or delete historical forecasts
 
 ## 🔗 API Documentation
 
@@ -177,7 +175,7 @@ Response: DataIngestionResponse with batch ID and processing results
 ```http
 GET /api/loan-forecast/upload-history
 
-Response: List of all upload batches with metadata
+Response: List of all upload batches with metadata (only valid records with existing files)
 ```
 
 #### Download Forecast CSV
@@ -191,7 +189,7 @@ Response: CSV file with forecast data
 ```http
 GET /api/loan-forecast/upload-history/{batchId}/forecast-data
 
-Response: JSON array of loan forecast data
+Response: JSON array of loan forecast data for the specified file
 ```
 
 #### Health Check
@@ -293,8 +291,9 @@ loan-disbursement-system/
 │   ├── src/main/resources/        # Configuration files
 │   └── pom.xml                    # Maven dependencies
 ├── frontend/                      # React frontend application
-│   ├── src/components/            # React components
+│   ├── src/components/            # React components (DataUpload, PortfolioDashboard, DashboardModal, etc.)
 │   ├── src/services/              # API service layer
+│   ├── src/types/                 # TypeScript types
 │   └── package.json               # npm dependencies
 ├── docker/                        # Docker configuration
 │   ├── docker-compose.yml         # Service orchestration

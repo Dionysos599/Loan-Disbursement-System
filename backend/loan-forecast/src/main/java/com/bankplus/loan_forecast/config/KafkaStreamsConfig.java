@@ -77,7 +77,7 @@ public class KafkaStreamsConfig {
                     uploadHistory.setProcessedRecords(forecastDataList.size());
                     uploadHistory.setFailedRecords(loanDataList.size() - forecastDataList.size());
                     uploadHistory.setUploadStatus("SUCCESS");
-                    uploadHistory.setProcessedAt(java.time.LocalDateTime.now());
+                    uploadHistory.setProcessedAt(java.time.Instant.now());
                     uploadHistoryRepository.save(uploadHistory);
                 }
 

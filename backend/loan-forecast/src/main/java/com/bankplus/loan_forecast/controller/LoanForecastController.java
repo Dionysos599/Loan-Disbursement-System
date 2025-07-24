@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import reactor.core.publisher.Mono;
 
@@ -46,7 +46,7 @@ public class LoanForecastController {
                 .fileSize(file.getSize())
                 .uploadStatus("PROCESSING")
                 .forecastStartDate(startMonth)
-                .uploadedAt(LocalDateTime.now())
+                .uploadedAt(Instant.now())
                 .build();
         try {
             String inputDir = new java.io.File("backend/data/Input/").getAbsoluteFile().toString();
@@ -71,7 +71,7 @@ public class LoanForecastController {
             log.error("Error processing CSV upload: {}", e.getMessage(), e);
             uploadHistory.setUploadStatus("FAILED");
             uploadHistory.setErrorMessage(e.getMessage());
-            uploadHistory.setProcessedAt(LocalDateTime.now());
+            uploadHistory.setProcessedAt(Instant.now());
             uploadHistoryRepository.save(uploadHistory);
             return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(DataIngestionResponse.builder()
@@ -85,7 +85,14 @@ public class LoanForecastController {
     public ResponseEntity<List<UploadHistory>> getUploadHistory() {
         try {
             List<UploadHistory> history = uploadHistoryRepository.findAllByOrderByUploadedAtDesc();
-            return ResponseEntity.ok(history);
+            List<UploadHistory> validHistory = history.stream()
+                .filter(h -> {
+                    boolean hasOriginal = h.getOriginalFilePath() != null && java.nio.file.Files.exists(java.nio.file.Paths.get(h.getOriginalFilePath()));
+                    boolean hasForecast = h.getForecastCsvPath() == null || java.nio.file.Files.exists(java.nio.file.Paths.get(h.getForecastCsvPath()));
+                    return hasOriginal && hasForecast;
+                })
+                .toList();
+            return ResponseEntity.ok(validHistory);
         } catch (Exception e) {
             log.error("Error fetching upload history: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

@@ -36,7 +36,12 @@ import { loanForecastAPI } from '../services/api';
 
 import { LoanForecastData } from '../types/loan';
 
-const PortfolioDashboard: React.FC = () => {
+interface PortfolioDashboardProps {
+  batchId?: string;
+  onClose?: () => void;
+}
+
+const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ batchId, onClose }) => {
   const theme = useTheme();
   const [portfolioData, setPortfolioData] = useState<any>(null);
   const [forecastData, setForecastData] = useState<LoanForecastData[] | null>(null);
@@ -47,30 +52,36 @@ const PortfolioDashboard: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [batchId]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      // Get latest upload and forecast data
-      const upload = await loanForecastAPI.getLatestSuccessfulUpload();
+      let upload: any;
+      if (batchId) {
+        upload = await loanForecastAPI.getUploadHistory();
+        if (Array.isArray(upload)) {
+          upload = upload.find((item) => item.batchId === batchId);
+        }
+      } else { // if no batchId, get the latest successful upload
+        upload = await loanForecastAPI.getLatestSuccessfulUpload();
+      }
       if (!upload) {
         setError('No data available. Please upload loan data first.');
         return;
       }
-
       // Set data source filename
-      setDataSource(upload.originalFilename);
-
-      const forecastDataList = await loanForecastAPI.getForecastData(upload.batchId);
-      
-      // Process data for portfolio analysis
+      if (upload.originalFilename) setDataSource(upload.originalFilename);
+      else setDataSource('');
+      let forecastDataList = await loanForecastAPI.getForecastData(upload.batchId);
+      // only keep the forecast data for the current batch
+      if (Array.isArray(forecastDataList)) {
+        forecastDataList = forecastDataList.filter(item => !item.batchId || item.batchId === upload.batchId);
+      }
       const processedData = processPortfolioData(forecastDataList);
       setPortfolioData(processedData);
       setForecastData(forecastDataList);
-
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       setError('Failed to load dashboard data');
@@ -87,12 +98,18 @@ const PortfolioDashboard: React.FC = () => {
     const totalForecastAmount = forecastData.reduce((sum, loan) => 
       sum + (loan.totalForecastedAmount || 0), 0
     );
-    
-    // Find the highest forecasted balance
-    const highestForecastedBalance = forecastData.reduce((max, loan) => {
-      const loanMax = loan.forecastData ? Math.max(...Object.values(loan.forecastData).filter(val => typeof val === 'number')) : 0;
-      return Math.max(max, loanMax);
-    }, 0);
+
+    const monthSum: Record<string, number> = {};
+    forecastData.forEach(loan => {
+      if (loan.forecastData) {
+        Object.entries(loan.forecastData).forEach(([month, value]) => {
+          if (typeof value === 'number') {
+            monthSum[month] = (monthSum[month] || 0) + value;
+          }
+        });
+      }
+    });
+    const maxLoanForecast = Object.values(monthSum).reduce((max, sum) => Math.max(max, sum), 0);
 
     // Count total data points (forecast entries)
     const totalDataPoints = forecastData.reduce((total, loan) => {
@@ -132,7 +149,7 @@ const PortfolioDashboard: React.FC = () => {
       summary: {
         totalLoans,
         totalLoanAmount,
-        highestForecastedBalance,
+        maxLoanForecast,
         totalDataPoints,
       },
       propertyTypeData,
@@ -238,94 +255,66 @@ const PortfolioDashboard: React.FC = () => {
     );
   }
 
-  const StatCard = ({ title, value, icon, color }: any) => (
+  const StatCard = ({ title, value, icon, color, bgColor }: any) => (
     <Card 
       sx={{ 
-        height: '120px', // 固定高度确保一致性
-        background: `linear-gradient(135deg, ${alpha(color, 0.1)} 0%, ${alpha(color, 0.05)} 100%)`,
-        border: `1px solid ${alpha(color, 0.2)}`,
-        transition: 'all 0.2s ease-in-out',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: `0 8px 25px ${alpha(color, 0.15)}`,
-        }
-      }}
-    >
-      <CardContent sx={{ 
-        height: '100%', 
-        display: 'flex', 
+        height: '72px',
+        background: bgColor || '#f8fafd',
+        border: '1px solid #e3e8ee',
+        borderRadius: 3,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        p: 2,
-        '&:last-child': { pb: 2 } // 确保底部padding一致
-      }}>
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          height: '100%'
-        }}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            justifyContent: 'center',
-            flex: 1
-          }}>
-            <Typography 
-              variant="body2" 
-              color="text.secondary" 
-              sx={{ 
-                fontWeight: 500,
-                mb: 0.5,
-                lineHeight: 1.2
-              }}
-            >
-              {title}
-            </Typography>
-            <Typography 
-              variant="h4" 
-              sx={{ 
-                fontWeight: 700, 
-                color,
-                lineHeight: 1.1
-              }}
-            >
-              {value}
-            </Typography>
-          </Box>
-          <Box sx={{ 
-            width: 60,
-            height: 60,
-            borderRadius: '50%', 
-            backgroundColor: alpha(color, 0.1),
-            border: `2px solid ${alpha(color, 0.2)}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            ml: 2
-          }}>
-            {React.cloneElement(icon, { 
-              sx: { 
-                fontSize: 28, // 统一图标大小
-                color: color,
-                display: 'block' // 确保图标正确渲染
-              } 
-            })}
-          </Box>
+        px: 2,
+        py: 1,
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mb: 0.5, fontSize: 15 }}>
+            {title}
+          </Typography>
+          <Typography variant="h4" sx={{ fontWeight: 900, color, lineHeight: 1.1, fontSize: 28 }}>
+            {value}
+          </Typography>
         </Box>
-      </CardContent>
+        <Box sx={{
+          width: 34,
+          height: 34,
+          minWidth: 34,
+          minHeight: 34,
+          maxWidth: 34,
+          maxHeight: 34,
+          borderRadius: '50%',
+          background: color + '10',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          ml: 2,
+          border: `2px solid ${color}22`,
+          boxSizing: 'border-box',
+        }}>
+          {React.cloneElement(icon, { sx: { fontSize: 20, color } })}
+        </Box>
+      </Box>
     </Card>
   );
 
   return (
     <Box sx={{ p: 3, backgroundColor: alpha(theme.palette.background.default, 0.5) }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" sx={{ fontWeight: 700, mb: 1, color: theme.palette.primary.main }}>
-          Loan Portfolio Dashboard
+      <Box sx={{ mb: 4, textAlign: 'center' }}>
+        <Typography variant="h3" sx={{ fontWeight: 700, color: '#15418C', mb: 2 }}>
+          Forecast Dashboard: {
+            dataSource
+              ? (dataSource.length > 20 && dataSource.endsWith('.csv')
+                  ? `${dataSource.slice(0, 19)}...`
+                  : dataSource)
+              : batchId
+          }
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{ color: '#15418C', fontSize: 20, mb: 2 }}>
           Comprehensive overview of your loan portfolio and forecasting analytics
         </Typography>
       </Box>
@@ -337,23 +326,26 @@ const PortfolioDashboard: React.FC = () => {
             title="Total loans"
             value={portfolioData.summary.totalLoans.toLocaleString()}
             icon={<AccountBalanceIcon />}
-            color={theme.palette.primary.main}
+            color="#1976d2"
+            bgColor="#f3f7fb"
           />
         </Box>
         <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <StatCard
             title="Total loan amount"
-            value={`$${(portfolioData.summary.totalLoanAmount / 1000000).toFixed(1)}M`}
+            value={`$${(portfolioData.summary.totalLoanAmount / 1000000).toFixed(2)}M`}
             icon={<AttachMoneyIcon />}
-            color={theme.palette.success.main}
+            color="#388e3c"
+            bgColor="#f3faf4"
           />
         </Box>
         <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <StatCard
-            title="Highest forecasted balance"
-            value={`$${(portfolioData.summary.highestForecastedBalance / 1000).toFixed(0)}K`}
+            title="Max montly disbursement"
+            value={`$${(portfolioData.summary.maxLoanForecast / 1000000).toFixed(2)}M`}
             icon={<TrendingUpIcon />}
-            color={theme.palette.warning.main}
+            color="#f57c00"
+            bgColor="#fff7f0"
           />
         </Box>
         <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
@@ -361,7 +353,8 @@ const PortfolioDashboard: React.FC = () => {
             title="Data points"
             value={portfolioData.summary.totalDataPoints.toLocaleString()}
             icon={<DataUsageIcon />}
-            color={theme.palette.info.main}
+            color="#1976d2"
+            bgColor="#f3f7fb"
           />
         </Box>
       </Box>
@@ -438,27 +431,6 @@ const PortfolioDashboard: React.FC = () => {
           </AreaChart>
         </ResponsiveContainer>
       </Paper>
-
-      {/* Data Source Info */}
-      <Box sx={{ 
-        position: 'fixed', 
-        bottom: 20, 
-        right: 20, 
-        zIndex: 1000 
-      }}>
-        <Chip
-          label={`Data Source: ${dataSource}`}
-          variant="outlined"
-          size="small"
-          sx={{
-            backgroundColor: alpha(theme.palette.background.paper, 0.9),
-            backdropFilter: 'blur(10px)',
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-            color: theme.palette.text.secondary,
-            fontSize: '0.75rem',
-          }}
-        />
-      </Box>
     </Box>
   );
 };

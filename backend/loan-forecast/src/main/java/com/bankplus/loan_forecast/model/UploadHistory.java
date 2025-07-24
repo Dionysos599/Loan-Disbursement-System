@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "upload_history")
@@ -42,10 +42,10 @@ public class UploadHistory {
     private Integer failedRecords;
     
     @Column(name = "uploaded_at")
-    private LocalDateTime uploadedAt;
+    private Instant uploadedAt;
     
     @Column(name = "processed_at")
-    private LocalDateTime processedAt;
+    private Instant processedAt;
     
     @Column(name = "forecast_start_date")
     private String forecastStartDate;

@@ -27,13 +27,15 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
+import Dialog from '@mui/material/Dialog';
 
 import { loanForecastAPI } from '../services/api';
 
 import { UploadHistory, DataIngestionResponse, LoanForecastData } from '../types/loan';
+import DashboardModal from './DashboardModal';
 
 interface DataUploadProps {
-  onForecastDataGenerated: (data: LoanForecastData[]) => void;
+  onForecastDataGenerated?: (data: LoanForecastData[]) => void;
 }
 
 const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
@@ -47,6 +49,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<any>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const [dashboardBatchId, setDashboardBatchId] = useState<string | null>(null);
 
   // Load upload history on component mount
   useEffect(() => {
@@ -127,7 +130,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
           ...loan,
           scenarioName: loan.loanNumber || 'N/A',
         }));
-        onForecastDataGenerated(forecastData);
+        onForecastDataGenerated && onForecastDataGenerated(forecastData);
       }
       
       // Refresh upload history
@@ -174,13 +177,16 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box sx={{ p: 3, backgroundColor: alpha(theme.palette.background.default, 0.5) }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h3" sx={{ fontWeight: 700, mb: 1, color: theme.palette.primary.main }}>
-            Data Upload
+        <Box sx={{ mb: 4, mt: -1.5, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+          <img src={process.env.PUBLIC_URL + '/APB_Logo_New.png'} alt="American Plus Bank Logo" style={{ width: '30%', height: 'auto', minWidth: 120, maxWidth: 400 }} />
+        </Box>
+        <Box sx={{ mb: 4, textAlign: 'center' }}>
+          <Typography variant="h3" sx={{ fontWeight: 700, color: '#15418C', mb: 2 }}>
+            Loan Disbursement Forecast System
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" sx={{ color: '#15418C', fontSize: 20, mb: 2 }}>
             Upload CSV files for loan forecast processing and analysis
-      </Typography>
+          </Typography>
         </Box>
 
         {/* Upload Form */}
@@ -246,16 +252,19 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
             variant="contained"
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
-                startIcon={<CloudUploadIcon />}
-                sx={{ 
-                  height: '56px',
-                  px: 4,
-                  fontWeight: 600,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  '&:hover': {
-                    boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
-                  }
-                }}
+            startIcon={<CloudUploadIcon />}
+            sx={{ 
+              height: '56px',
+              px: 4,
+              fontWeight: 600,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              backgroundColor: '#15418C',
+              color: '#fff',
+              '&:hover': {
+                backgroundColor: '#C0392B',
+                boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
+              }
+            }}
           >
                 {uploading ? 'Processing...' : 'Upload & Process'}
           </Button>
@@ -338,19 +347,21 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
             <TableContainer sx={{ borderRadius: 2, border: `1px solid ${alpha(theme.palette.divider, 0.12)}` }}>
               <Table>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04) }}>
-                    <TableCell sx={{ fontWeight: 600 }}>Filename</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Records</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Upload Date</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
+                  <TableRow sx={{ backgroundColor: '#15418C' }}>
+                    <TableCell sx={{ fontWeight: 600, color: '#fff' }}>Filename</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#fff' }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#fff' }}>Records</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#fff' }}>Upload Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#fff' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {uploadHistory.map((history) => (
                     <TableRow 
                       key={history.batchId}
-                      sx={{ '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.5) } }}
+                      hover
+                      sx={{ cursor: 'pointer', '&:hover': { backgroundColor: '#FDEDEC' } }}
+                      onClick={() => setDashboardBatchId(history.batchId)}
                     >
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -377,18 +388,18 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {new Date(history.uploadedAt).toLocaleDateString()} at{' '}
-                          {new Date(history.uploadedAt).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
+                          {(() => {
+                            const d = new Date(history.uploadedAt);
+                            return d.toLocaleDateString() + ' at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          })()}
                         </Typography>
                       </TableCell>
                         <TableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <IconButton
                             size="small"
-                            onClick={() => {
+                            onClick={e => {
+                              e.stopPropagation();
                               const url = loanForecastAPI.downloadForecastFile(history.batchId);
                               window.open(url, '_blank');
                             }}
@@ -402,7 +413,10 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
                           </IconButton>
                           <IconButton
                             size="small"
-                            onClick={() => handleDeleteHistory(history.batchId)}
+                            onClick={e => {
+                              e.stopPropagation();
+                              handleDeleteHistory(history.batchId);
+                            }}
                             title="Delete"
                             sx={{ 
                               color: theme.palette.error.main,
@@ -434,7 +448,12 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
             </TableContainer>
           )}
         </Paper>
-    </Box>
+      </Box>
+      <Dialog open={!!dashboardBatchId} onClose={() => setDashboardBatchId(null)} maxWidth="xl" fullWidth>
+        {dashboardBatchId && (
+          <DashboardModal batchId={dashboardBatchId} open={!!dashboardBatchId} onClose={() => setDashboardBatchId(null)} />
+        )}
+      </Dialog>
     </LocalizationProvider>
   );
 };
