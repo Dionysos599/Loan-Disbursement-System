@@ -699,6 +699,12 @@ public class CsvProcessingService {
                 System.arraycopy(months, 0, headers, baseHeaders.length, months.length);
                 writer.writeNext(headers);
 
+                // Calculate column sums for forecast data
+                Map<String, BigDecimal> columnSums = new HashMap<>();
+                for (String month : months) {
+                    columnSums.put(month, BigDecimal.ZERO);
+                }
+
                 // Only iterate forecastList, and only output valid rows
                 for (LoanForecastData forecast : forecastList) {
                     if (forecast == null || forecast.getLoanNumber() == null || forecast.getLoanNumber().trim().isEmpty()) {
@@ -715,15 +721,42 @@ public class CsvProcessingService {
 
                     for (String m : months) {
                         if (forecast.getForecastData() != null && forecast.getForecastData().containsKey(m)) {
-                            row.add(forecast.getForecastData().get(m) != null ? forecast.getForecastData().get(m).toString() : "");
+                            BigDecimal amount = forecast.getForecastData().get(m);
+                            if (amount != null) {
+                                row.add(amount.toString());
+                                // Add to column sum
+                                columnSums.put(m, columnSums.get(m).add(amount));
+                            } else {
+                                row.add("");
+                            }
                         } else {
                             row.add("");
                         }
                     }
                     writer.writeNext(row.toArray(new String[0]));
                 }
+
+                // Add SUM OF FORECAST row
+                java.util.List<String> sumRow = new java.util.ArrayList<>();
+                sumRow.add("SUM OF FORECAST");
+                // Add empty values for base columns (Loan Amount, Maturity Date, etc.)
+                for (int i = 1; i < baseHeaders.length; i++) {
+                    sumRow.add("");
+                }
+                
+                // Add sum values for forecast columns
+                for (String m : months) {
+                    BigDecimal sum = columnSums.get(m);
+                    if (sum != null && sum.compareTo(BigDecimal.ZERO) > 0) {
+                        sumRow.add(sum.toString());
+                    } else {
+                        sumRow.add("");
+                    }
+                }
+                
+                writer.writeNext(sumRow.toArray(new String[0]));
             }
-            log.info("Custom forecast CSV generated: {}", filePath);
+            log.info("Custom forecast CSV generated with sum row: {}", filePath);
             return filePath;
         } catch (Exception e) {
             log.error("Failed to generate custom forecast CSV: {}", e.getMessage());

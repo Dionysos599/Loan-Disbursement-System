@@ -361,8 +361,18 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
                     <TableRow 
                       key={history.batchId}
                       hover
-                      sx={{ cursor: 'pointer', '&:hover': { backgroundColor: '#FDEDEC' } }}
-                      onClick={() => setDashboardBatchId(history.batchId)}
+                      sx={{ 
+                        cursor: history.uploadStatus === 'PROCESSING' ? 'not-allowed' : 'pointer',
+                        '&:hover': { 
+                          backgroundColor: history.uploadStatus === 'PROCESSING' ? 'transparent' : '#FDEDEC' 
+                        },
+                        opacity: history.uploadStatus === 'PROCESSING' ? 0.6 : 1
+                      }}
+                      onClick={() => {
+                        if (history.uploadStatus !== 'PROCESSING') {
+                          setDashboardBatchId(history.batchId);
+                        }
+                      }}
                     >
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -399,29 +409,35 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <IconButton
                             size="small"
+                            disabled={history.uploadStatus === 'PROCESSING'}
                             onClick={e => {
                               e.stopPropagation();
                               const url = loanForecastAPI.downloadForecastFile(history.batchId);
                               window.open(url, '_blank');
                             }}
-                            title="Download Forecast CSV"
+                            title={history.uploadStatus === 'PROCESSING' ? 'Processing...' : 'Download Forecast CSV'}
                             sx={{ 
-                              color: theme.palette.info.main,
-                              '&:hover': { backgroundColor: alpha(theme.palette.info.main, 0.1) }
+                              color: history.uploadStatus === 'PROCESSING' ? theme.palette.action.disabled : theme.palette.info.main,
+                              '&:hover': { 
+                                backgroundColor: history.uploadStatus === 'PROCESSING' ? 'transparent' : alpha(theme.palette.info.main, 0.1) 
+                              }
                             }}
                           >
                             <DownloadIcon fontSize="small" />
                           </IconButton>
                           <IconButton
                             size="small"
+                            disabled={history.uploadStatus === 'PROCESSING'}
                             onClick={e => {
                               e.stopPropagation();
                               handleDeleteHistory(history.batchId);
                             }}
-                            title="Delete"
+                            title={history.uploadStatus === 'PROCESSING' ? 'Processing...' : 'Delete'}
                             sx={{ 
-                              color: theme.palette.error.main,
-                              '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.1) }
+                              color: history.uploadStatus === 'PROCESSING' ? theme.palette.action.disabled : theme.palette.error.main,
+                              '&:hover': { 
+                                backgroundColor: history.uploadStatus === 'PROCESSING' ? 'transparent' : alpha(theme.palette.error.main, 0.1) 
+                              }
                             }}
                           >
                             <DeleteIcon fontSize="small" />
