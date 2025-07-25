@@ -49,6 +49,7 @@ services:
       - "3000:3000"
     environment:
       REACT_APP_API_URL: http://localhost:8081/api
+      REACT_APP_WS_URL: ws://loan-forecast-service:8081/ws/progress
     depends_on:
       - loan-forecast-service
     networks:

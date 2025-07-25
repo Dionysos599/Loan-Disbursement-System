@@ -1,0 +1,27 @@
+name: CI with Docker
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  test-with-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Build and start all containers with backend mvn test
+        run: |
+          cd docker
+          docker compose up -d --build
+      - name: Run frontend tests in container
+        run: |
+          docker exec loan-forecast-frontend npm test -- --watchAll=false --maxWorkers=2
+      - name: Tear down containers
+        if: always()
+        run: |
+          cd docker
+          docker compose down 

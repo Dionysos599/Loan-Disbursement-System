@@ -9,13 +9,18 @@ import com.bankplus.loan_forecast.service.ReactiveUploadService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import reactor.core.publisher.Mono;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/loan-forecast")
@@ -32,6 +37,9 @@ public class LoanForecastController {
     @Autowired
     private ReactiveUploadService reactiveUploadService;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @PostMapping("/upload")
     public Mono<ResponseEntity<DataIngestionResponse>> uploadCsvFile(
             @RequestParam("file") MultipartFile file,
@@ -40,14 +48,13 @@ public class LoanForecastController {
         log.info("Received CSV file upload: {} with startMonth {}", file.getOriginalFilename(), startMonth);
 
         String batchId = csvProcessingService.generateBatchId();
-        UploadHistory uploadHistory = UploadHistory.builder()
-                .batchId(batchId)
-                .originalFilename(file.getOriginalFilename())
-                .fileSize(file.getSize())
-                .uploadStatus("PROCESSING")
-                .forecastStartDate(startMonth)
-                .uploadedAt(Instant.now())
-                .build();
+        UploadHistory uploadHistory = new UploadHistory();
+        uploadHistory.setBatchId(batchId);
+        uploadHistory.setOriginalFilename(file.getOriginalFilename());
+        uploadHistory.setFileSize(file.getSize());
+        uploadHistory.setUploadStatus("PROCESSING");
+        uploadHistory.setForecastStartDate(startMonth);
+        uploadHistory.setUploadedAt(Instant.now());
         try {
             String inputDir = new java.io.File("backend/data/Input/").getAbsoluteFile().toString();
             java.nio.file.Files.createDirectories(java.nio.file.Paths.get(inputDir));
@@ -81,8 +88,9 @@ public class LoanForecastController {
         }
     }
 
-    @GetMapping("/upload-history")
-    public ResponseEntity<List<UploadHistory>> getUploadHistory() {
+    @GetMapping(value = "/upload-history", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<String> getUploadHistory() {
         try {
             List<UploadHistory> history = uploadHistoryRepository.findAllByOrderByUploadedAtDesc();
             List<UploadHistory> validHistory = history.stream()
@@ -92,22 +100,56 @@ public class LoanForecastController {
                     return hasOriginal && hasForecast;
                 })
                 .toList();
-            return ResponseEntity.ok(validHistory);
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (UploadHistory uh : validHistory) {
+                Map<String, Object> h = new HashMap<>();
+                h.put("id", uh.getId());
+                h.put("batchId", uh.getBatchId());
+                h.put("originalFilename", uh.getOriginalFilename());
+                h.put("fileSize", uh.getFileSize());
+                h.put("uploadStatus", uh.getUploadStatus());
+                h.put("totalRecords", uh.getTotalRecords());
+                h.put("processedRecords", uh.getProcessedRecords());
+                h.put("failedRecords", uh.getFailedRecords());
+                h.put("uploadedAt", uh.getUploadedAt());
+                h.put("processedAt", uh.getProcessedAt());
+                h.put("forecastStartDate", uh.getForecastStartDate());
+                h.put("errorMessage", uh.getErrorMessage());
+                h.put("originalFilePath", uh.getOriginalFilePath());
+                h.put("forecastCsvPath", uh.getForecastCsvPath());
+                result.add(h);
+            }
+            return ResponseEntity.ok(objectMapper.writeValueAsString(result));
         } catch (Exception e) {
             log.error("Error fetching upload history: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    @GetMapping("/upload-history/latest")
-    public ResponseEntity<UploadHistory> getLatestSuccessfulUpload() {
+    @GetMapping(value = "/upload-history/latest", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<String> getLatestSuccessfulUpload() {
         try {
-            UploadHistory latestUpload = uploadHistoryRepository.findFirstByUploadStatusOrderByUploadedAtDesc("SUCCESS");
-            if (latestUpload != null) {
-                return ResponseEntity.ok(latestUpload);
-            } else {
+            UploadHistory latest = uploadHistoryRepository.findFirstByUploadStatusOrderByUploadedAtDesc("SUCCESS");
+            if (latest == null) {
                 return ResponseEntity.notFound().build();
             }
+            Map<String, Object> h = new HashMap<>();
+            h.put("id", latest.getId());
+            h.put("batchId", latest.getBatchId());
+            h.put("originalFilename", latest.getOriginalFilename());
+            h.put("fileSize", latest.getFileSize());
+            h.put("uploadStatus", latest.getUploadStatus());
+            h.put("totalRecords", latest.getTotalRecords());
+            h.put("processedRecords", latest.getProcessedRecords());
+            h.put("failedRecords", latest.getFailedRecords());
+            h.put("uploadedAt", latest.getUploadedAt());
+            h.put("processedAt", latest.getProcessedAt());
+            h.put("forecastStartDate", latest.getForecastStartDate());
+            h.put("errorMessage", latest.getErrorMessage());
+            h.put("originalFilePath", latest.getOriginalFilePath());
+            h.put("forecastCsvPath", latest.getForecastCsvPath());
+            return ResponseEntity.ok(objectMapper.writeValueAsString(h));
         } catch (Exception e) {
             log.error("Error fetching latest upload: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

@@ -57,7 +57,8 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
   }, []);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8081/ws/progress');
+    const WS_BASE_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8081/ws/progress';
+    const ws = new WebSocket(WS_BASE_URL);
     wsRef.current = ws;
     ws.onmessage = (event) => {
       try {

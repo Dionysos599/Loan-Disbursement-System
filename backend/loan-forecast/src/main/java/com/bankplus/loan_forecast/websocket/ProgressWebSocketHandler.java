@@ -63,7 +63,7 @@ public class ProgressWebSocketHandler extends TextWebSocketHandler {
         }, "ProgressWebSocket-KafkaConsumer").start();
     }
 
-    private void broadcast(String message) {
+    void broadcast(String message) {
         synchronized (sessions) {
             for (WebSocketSession session : sessions) {
                 try {
