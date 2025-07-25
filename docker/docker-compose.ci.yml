@@ -48,37 +48,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_API_URL: http://localhost:8081/api
-      REACT_APP_WS_URL: ws://localhost:8081/ws/progress
+      # For CI environment, use service names instead of localhost
+      REACT_APP_API_URL: http://loan-forecast-service:8081/api
+      REACT_APP_WS_URL: ws://loan-forecast-service:8081/ws/progress
     depends_on:
       - loan-forecast-service
     networks:
       - loan-forecast-network
-
-  zipkin:
-    image: openzipkin/zipkin:2.24
-    ports:
-      - "9411:9411"
-    networks:
-      - loan-forecast-network
-
-  prometheus:
-    image: prom/prometheus:latest
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-    networks:
-      - loan-forecast-network
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3001:3000"
-    networks:
-      - loan-forecast-network
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -112,4 +88,4 @@ volumes:
 
 networks:
   loan-forecast-network:
-    driver: bridge
+    driver: bridge 
