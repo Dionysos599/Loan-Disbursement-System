@@ -64,7 +64,14 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
       try {
         const msg = JSON.parse(event.data);
         setProgress(msg);
-      } catch {}
+        
+        // Immediately check if it's SUCCESS status and refresh history list
+        if (msg && msg.status === 'SUCCESS') {
+          fetchUploadHistory();
+        }
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error, 'Raw data:', event.data);
+      }
     };
     ws.onerror = (e) => {
       console.error('WebSocket error:', e);
@@ -95,6 +102,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
   // refresh history when success
   useEffect(() => {
     if (progress && progress.status === 'SUCCESS') {
+      console.log('Progress SUCCESS, refreshing upload history...'); // Add debug log
       fetchUploadHistory();
     }
   }, [progress]);

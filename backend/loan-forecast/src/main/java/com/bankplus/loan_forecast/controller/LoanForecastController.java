@@ -6,6 +6,9 @@ import com.bankplus.loan_forecast.model.UploadHistory;
 import com.bankplus.loan_forecast.repository.UploadHistoryRepository;
 import com.bankplus.loan_forecast.service.CsvProcessingService;
 import com.bankplus.loan_forecast.service.ReactiveUploadService;
+import com.bankplus.loan_forecast.service.TracingMetricsService;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,51 +43,120 @@ public class LoanForecastController {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private Tracer tracer;
+    
+    @Autowired
+    private TracingMetricsService tracingMetrics;
+
     @PostMapping("/upload")
     public Mono<ResponseEntity<DataIngestionResponse>> uploadCsvFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("startMonth") String startMonth
     ) {
-        log.info("Received CSV file upload: {} with startMonth {}", file.getOriginalFilename(), startMonth);
-
-        String batchId = csvProcessingService.generateBatchId();
-        UploadHistory uploadHistory = new UploadHistory();
-        uploadHistory.setBatchId(batchId);
-        uploadHistory.setOriginalFilename(file.getOriginalFilename());
-        uploadHistory.setFileSize(file.getSize());
-        uploadHistory.setUploadStatus("PROCESSING");
-        uploadHistory.setForecastStartDate(startMonth);
-        uploadHistory.setUploadedAt(Instant.now());
-        try {
-            String inputDir = new java.io.File("backend/data/Input/").getAbsoluteFile().toString();
-            java.nio.file.Files.createDirectories(java.nio.file.Paths.get(inputDir));
-            String savedFileName = batchId + "_" + file.getOriginalFilename();
-            java.nio.file.Path savedFilePath = java.nio.file.Paths.get(inputDir, savedFileName);
-            try (java.io.InputStream in = file.getInputStream()) {
-                java.nio.file.Files.copy(in, savedFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        // Create a new Span for tracing
+        Span span = tracer.spanBuilder("loan-forecast-upload").startSpan();
+        
+        // Record tracing metrics
+        tracingMetrics.recordTrace("loan-forecast-upload");
+        var timer = tracingMetrics.startTimer();
+        
+        try (var scope = span.makeCurrent()) {
+            log.info("Received CSV file upload: {} with startMonth {}", file.getOriginalFilename(), startMonth);
+            
+            // 添加关键标签
+            span.setAttribute("file.name", file.getOriginalFilename());
+            span.setAttribute("file.size", file.getSize());
+            span.setAttribute("start.month", startMonth);
+            
+            String batchId = csvProcessingService.generateBatchId();
+            span.setAttribute("batch.id", batchId);
+            
+            UploadHistory uploadHistory = new UploadHistory();
+            uploadHistory.setBatchId(batchId);
+            uploadHistory.setOriginalFilename(file.getOriginalFilename());
+            uploadHistory.setFileSize(file.getSize());
+            uploadHistory.setUploadStatus("PROCESSING");
+            uploadHistory.setForecastStartDate(startMonth);
+            uploadHistory.setUploadedAt(Instant.now());
+            
+            try {
+                // 追踪文件保存操作
+                Span fileSaveSpan = tracer.spanBuilder("file-save").startSpan();
+                try (var fileScope = fileSaveSpan.makeCurrent()) {
+                    String inputDir = new java.io.File("backend/data/Input/").getAbsoluteFile().toString();
+                    java.nio.file.Files.createDirectories(java.nio.file.Paths.get(inputDir));
+                    String savedFileName = batchId + "_" + file.getOriginalFilename();
+                    java.nio.file.Path savedFilePath = java.nio.file.Paths.get(inputDir, savedFileName);
+                    try (java.io.InputStream in = file.getInputStream()) {
+                        java.nio.file.Files.copy(in, savedFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    uploadHistory.setOriginalFilePath(savedFilePath.toString());
+                    fileSaveSpan.setAttribute("save.path", savedFilePath.toString());
+                    fileSaveSpan.setAttribute("save.success", "true");
+                } finally {
+                    fileSaveSpan.end();
+                }
+                
+                // 追踪数据库操作
+                Span dbSpan = tracer.spanBuilder("db-save-upload-history").startSpan();
+                try (var dbScope = dbSpan.makeCurrent()) {
+                    uploadHistoryRepository.save(uploadHistory);
+                    dbSpan.setAttribute("db.operation", "save");
+                    dbSpan.setAttribute("db.table", "upload_history");
+                    dbSpan.setAttribute("db.success", "true");
+                } finally {
+                    dbSpan.end();
+                }
+                
+                // 追踪 Kafka 消息发送
+                Span kafkaSpan = tracer.spanBuilder("kafka-send-event").startSpan();
+                try (var kafkaScope = kafkaSpan.makeCurrent()) {
+                    kafkaSpan.setAttribute("kafka.topic", "file-upload-events");
+                    kafkaSpan.setAttribute("kafka.batch.id", batchId);
+                    
+                    Mono<ResponseEntity<DataIngestionResponse>> result = reactiveUploadService.sendFileUploadEvent(batchId, uploadHistory.getOriginalFilePath(), startMonth)
+                            .thenReturn(ResponseEntity.ok(
+                                DataIngestionResponse.builder()
+                                    .batchId(batchId)
+                                    .status("PROCESSING")
+                                    .message("File received, processing started asynchronously.")
+                                    .build()
+                            ))
+                            .doOnSuccess(response -> {
+                                kafkaSpan.setAttribute("kafka.success", "true");
+                                span.setAttribute("upload.status", "PROCESSING");
+                                span.setAttribute("upload.success", "true");
+                            })
+                            .doOnError(error -> {
+                                kafkaSpan.recordException(error);
+                                span.recordException(error);
+                            });
+                    
+                    kafkaSpan.end();
+                    return result;
+                }
+                
+            } catch (Exception e) {
+                span.recordException(e);
+                span.setAttribute("error.type", e.getClass().getSimpleName());
+                span.setAttribute("error.message", e.getMessage());
+                log.error("Error processing CSV upload: {}", e.getMessage(), e);
+                
+                uploadHistory.setUploadStatus("FAILED");
+                uploadHistory.setErrorMessage(e.getMessage());
+                uploadHistory.setProcessedAt(Instant.now());
+                uploadHistoryRepository.save(uploadHistory);
+                
+                return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(DataIngestionResponse.builder()
+                                .status("FAILED")
+                                .message("Error processing CSV upload: " + e.getMessage())
+                                .build()));
             }
-            uploadHistory.setOriginalFilePath(savedFilePath.toString());
-            uploadHistoryRepository.save(uploadHistory);
-            // Asynchronously write to Kafka, return batchId immediately
-            return reactiveUploadService.sendFileUploadEvent(batchId, savedFilePath.toString(), startMonth)
-                    .thenReturn(ResponseEntity.ok(
-                        DataIngestionResponse.builder()
-                            .batchId(batchId)
-                            .status("PROCESSING")
-                            .message("File received, processing started asynchronously.")
-                            .build()
-                    ));
-        } catch (Exception e) {
-            log.error("Error processing CSV upload: {}", e.getMessage(), e);
-            uploadHistory.setUploadStatus("FAILED");
-            uploadHistory.setErrorMessage(e.getMessage());
-            uploadHistory.setProcessedAt(Instant.now());
-            uploadHistoryRepository.save(uploadHistory);
-            return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(DataIngestionResponse.builder()
-                            .status("FAILED")
-                            .message("Error processing CSV upload: " + e.getMessage())
-                            .build()));
+        } finally {
+            tracingMetrics.stopTimer(timer);
+            span.end();
         }
     }
 

@@ -32,23 +32,19 @@ spring:
     base-url: http://zipkin:9411
   kafka:
     bootstrap-servers: kafka:9092
-    streams:
-      application-id: loan-forecast-streams
     topics:
+      progress-updates: progress-updates
       file-upload-events: file-upload-events
       cleaned-data-topic: cleaned-data-topic
-      progress-updates: progress-updates
 
-logging:
-  level:
-    com.bankplus: DEBUG
-    org.springframework.web: DEBUG
-
-forecasting:
-  service:
-    url: http://loan-forecasting-service:8082
-
+# Tracing configuration
 management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
   endpoints:
     web:
       exposure:
@@ -62,6 +58,25 @@ management:
     export:
       prometheus:
         enabled: true
+
+# OpenTelemetry configuration
+otel:
+  traces:
+    exporter: zipkin
+    endpoint: http://zipkin:9411/api/v2/spans
+  metrics:
+    exporter: prometheus
+  service:
+    name: loan-forecast-service
+
+logging:
+  level:
+    com.bankplus: DEBUG
+    org.springframework.web: DEBUG
+
+forecasting:
+  service:
+    url: http://loan-forecasting-service:8082
 
 file:
   input-dir: backend/data/Input/

@@ -1,14 +1,18 @@
 package com.bankplus.loan_forecast.controller;
 
 import com.bankplus.loan_forecast.service.CsvProcessingService;
+import com.bankplus.loan_forecast.service.LoanProcessingMetrics;
 import com.bankplus.loan_forecast.service.ReactiveUploadService;
+import com.bankplus.loan_forecast.service.TracingMetricsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.opentelemetry.api.trace.Tracer;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.mockito.Mockito;
 
 @TestConfiguration
 public class TestConfig {
@@ -18,9 +22,14 @@ public class TestConfig {
     }
 
     @Bean
+    public LoanProcessingMetrics loanProcessingMetrics(MeterRegistry meterRegistry) {
+        return new LoanProcessingMetrics(meterRegistry);
+    }
+
+    @Bean
     @Primary
-    public CsvProcessingService csvProcessingService(MeterRegistry meterRegistry) {
-        return new CsvProcessingService(meterRegistry);
+    public CsvProcessingService csvProcessingService(LoanProcessingMetrics loanProcessingMetrics) {
+        return new CsvProcessingService(loanProcessingMetrics);
     }
 
     @Bean
@@ -33,5 +42,15 @@ public class TestConfig {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         return mapper;
+    }
+
+    @Bean
+    public Tracer tracer() {
+        return Mockito.mock(Tracer.class);
+    }
+    
+    @Bean
+    public TracingMetricsService tracingMetricsService(MeterRegistry meterRegistry) {
+        return new TracingMetricsService(meterRegistry);
     }
 } 

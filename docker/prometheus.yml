@@ -4,4 +4,4 @@ scrape_configs:
   - job_name: 'loan-forecast-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['loan-forecast:8081'] 
+      - targets: ['loan-forecast-service:8081'] 

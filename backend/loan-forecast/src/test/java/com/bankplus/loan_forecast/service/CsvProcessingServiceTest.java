@@ -22,7 +22,8 @@ class CsvProcessingServiceTest {
     @BeforeEach
     void setUp() {
         MeterRegistry registry = new SimpleMeterRegistry();
-        service = new CsvProcessingService(registry);
+        LoanProcessingMetrics metrics = new LoanProcessingMetrics(registry);
+        service = new CsvProcessingService(metrics);
     }
 
     @Test

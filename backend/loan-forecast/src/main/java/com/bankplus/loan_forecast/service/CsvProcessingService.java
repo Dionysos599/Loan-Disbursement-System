@@ -19,75 +19,67 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.Locale;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 @Slf4j
 public class CsvProcessingService {
-    private final Counter successCounter;
-    private final Counter failureCounter;
-    private final Timer batchProcessingTimer;
-    private static volatile int activeBatchCount = 0;
+    private final LoanProcessingMetrics metrics;
 
     @Autowired
-    public CsvProcessingService(MeterRegistry meterRegistry) {
-        this.successCounter = meterRegistry.counter("batch_processing_success");
-        this.failureCounter = meterRegistry.counter("batch_processing_failure");
-        this.batchProcessingTimer = meterRegistry.timer("batch_processing_duration");
-        Gauge.builder("active_batch_count", CsvProcessingService::getActiveBatchCount)
-                .description("Number of active batch processing jobs")
-                .register(meterRegistry);
-        // Initialize once to ensure metrics are collected
-        this.successCounter.increment(0.0);
-        this.failureCounter.increment(0.0);
-        this.batchProcessingTimer.record(0, java.util.concurrent.TimeUnit.MILLISECONDS);
-    }
-
-    public static int getActiveBatchCount() {
-        return activeBatchCount;
+    public CsvProcessingService(LoanProcessingMetrics metrics) {
+        this.metrics = metrics;
     }
 
     public List<CsvLoanData> processCsvFile(MultipartFile file) throws IOException {
         log.info("Processing CSV file: {}", file.getOriginalFilename());
-        activeBatchCount++;
+        metrics.onProcessingStart();
+        Timer.Sample sample = metrics.startTimer();
+        
         try {
-            return batchProcessingTimer.record(() -> {
-                try {
-                    List<CsvLoanData> result = processCsvData(new InputStreamReader(file.getInputStream()));
-                    successCounter.increment();
-                    return result;
-                } catch (IOException e) {
-                    failureCounter.increment();
-                    throw new RuntimeException(e);
-                }
-            });
-        } finally {
-            activeBatchCount--;
+            List<CsvLoanData> result = processCsvData(new InputStreamReader(file.getInputStream()));
+            BigDecimal totalAmount = calculateTotalAmount(result);
+            long durationMs = sample.stop(metrics.getProcessingTimer());
+            metrics.onProcessingComplete(durationMs, result.size(), totalAmount);
+            return result;
+        } catch (IOException e) {
+            metrics.onProcessingError("io_error", 1);
+            throw new RuntimeException(e);
         }
     }
 
     public List<LoanForecastData> processCsvFileFromPath(String filePath, String startMonth) throws IOException {
         log.info("Processing CSV file from path: {}", filePath);
-        activeBatchCount++;
-        try {
-            return batchProcessingTimer.record(() -> {
-                try (Reader reader = new FileReader(filePath)) {
-                    List<CsvLoanData> loanDataList = processCsvData(reader);
-                    successCounter.increment();
-                    log.info("Successfully parsed {} loan records from CSV file", loanDataList.size());
-                    return convertToLoanForecastData(loanDataList, startMonth);
-                } catch (IOException e) {
-                    failureCounter.increment();
-                    throw new RuntimeException(e);
-                }
-            });
-        } finally {
-            activeBatchCount--;
+        metrics.onProcessingStart();
+        Timer.Sample sample = metrics.startTimer();
+        
+        try (Reader reader = new FileReader(filePath)) {
+            List<CsvLoanData> loanDataList = processCsvData(reader);
+            BigDecimal totalAmount = calculateTotalAmount(loanDataList);
+            long durationMs = sample.stop(metrics.getProcessingTimer());
+            metrics.onProcessingComplete(durationMs, loanDataList.size(), totalAmount);
+            log.info("Successfully parsed {} loan records from CSV file", loanDataList.size());
+            return convertToLoanForecastData(loanDataList, startMonth);
+        } catch (IOException e) {
+            metrics.onProcessingError("io_error", 1);
+            throw new RuntimeException(e);
         }
+    }
+    
+    private BigDecimal calculateTotalAmount(List<CsvLoanData> loanDataList) {
+        return loanDataList.stream()
+            .map(data -> {
+                if (data.getLoanAmount() != null && !data.getLoanAmount().isEmpty()) {
+                    try {
+                        return new BigDecimal(data.getLoanAmount());
+                    } catch (NumberFormatException e) {
+                        return BigDecimal.ZERO;
+                    }
+                }
+                return BigDecimal.ZERO;
+            })
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
@@ -238,7 +230,14 @@ public class CsvProcessingService {
         log.info("Converting {} CSV records to forecast data using local algorithms", csvDataList.size());
         
         try {
-            LocalDate forecastStartDate = LocalDate.parse(startMonthStr);
+            LocalDate forecastStartDate;
+            if (startMonthStr.matches("\\d{4}-\\d{2}")) {
+                // Handle yyyy-MM format
+                forecastStartDate = LocalDate.parse(startMonthStr + "-01");
+            } else {
+                // Handle yyyy-MM-dd format
+                forecastStartDate = LocalDate.parse(startMonthStr);
+            }
             
             // Convert CSV data to Map
             List<Map<String, Object>> loanDataList = new ArrayList<>();
