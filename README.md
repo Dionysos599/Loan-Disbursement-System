@@ -291,14 +291,39 @@ loan-disbursement-system/
 │   ├── src/main/resources/        # Configuration files
 │   └── pom.xml                    # Maven dependencies
 ├── frontend/                      # React frontend application
-│   ├── src/components/            # React components (DataUpload, PortfolioDashboard, DashboardModal, etc.)
-│   ├── src/services/              # API service layer
-│   ├── src/types/                 # TypeScript types
-│   └── package.json               # npm dependencies
+│   ├── src/
+│   │   ├── __tests__/             # Test files (App.test.tsx, DataUpload.test.tsx)
+│   │   ├── assets/                # Static assets (CSS, images, logo.svg)
+│   │   ├── components/            # React components (DataUpload, PortfolioDashboard, DashboardModal, Layout)
+│   │   ├── constants/             # Application constants and configuration
+│   │   ├── services/              # API service layer
+│   │   ├── types/                 # TypeScript type definitions
+│   │   ├── utils/                 # Utility functions and helpers
+│   │   ├── App.tsx                # Main App component
+│   │   ├── index.tsx              # Application entry point
+│   │   └── setupTests.ts          # Jest test setup
+│   ├── public/                    # Public assets and index.html
+│   ├── package.json               # npm dependencies and scripts
+│   ├── tsconfig.json              # TypeScript configuration
 ├── docker/                        # Docker configuration
 │   ├── docker-compose.yml         # Service orchestration
 │   └── init.sql                   # Database initialization
 └── build.sh                       # Build automation script
+```
+
+#### Frontend Import Conventions
+
+The frontend uses TypeScript path mapping for clean imports:
+
+```typescript
+// Recommended imports
+import DataUpload from '@/components/DataUpload';
+import { loanForecastAPI } from '@/services/api';
+import { validateFile } from '@/utils/helpers';
+import { API_BASE_URL } from '@/constants';
+import '@/assets/App.css';
+
+// Relative imports also supported
 ```
 
 ### Development Guidelines
@@ -329,16 +354,26 @@ loan-disbursement-system/
    - Follow React functional component patterns
    - Implement proper error handling
    - Use Material-UI components consistently
+   - Follow the established directory structure (components, services, utils, constants)
 
-2. **State Management**
+2. **Directory Organization**
+   - Place test files in `src/__tests__/` directory
+   - Store static assets (CSS, images) in `src/assets/` or `public/`
+   - Use `src/utils/` for common utility functions
+   - Define constants in `src/constants/` directory
+   - Place components in `src/components/` directory
+
+3. **State Management**
    - Use React hooks for local state
    - Implement proper loading states
    - Handle errors gracefully
+   - Use centralized state management when needed
 
-3. **API Integration**
-   - Use centralized API service
+4. **API Integration**
+   - Use centralized API service in `src/services/`
    - Implement proper error handling
    - Add loading indicators
+   - Use constants for API configuration
 
 ### Build Process
 
@@ -359,7 +394,10 @@ cd backend/loan-forecast && mvn test
 # Frontend tests
 cd frontend && npm test
 
-# Integration tests
+# Frontend tests in Docker
+docker exec loan-forecast-frontend npm test
+
+# Sanity tests
 ./test-system.sh
 ```
 

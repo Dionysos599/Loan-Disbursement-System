@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './App.css';
+import './assets/App.css';
 import DataUpload from './components/DataUpload';
 
 interface DataUploadProps {
