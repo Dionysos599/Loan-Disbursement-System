@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import DataUpload from './DataUpload';
+import DataUpload from '../components/DataUpload';
 import { loanForecastAPI } from '../services/api';
 import { Server, WebSocket as MockWebSocket } from 'mock-socket';
 
