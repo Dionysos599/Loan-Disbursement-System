@@ -1,11 +1,14 @@
-name: Branch Protection Check
+name: Check Branch Protection Status
 
 on:
+  workflow_dispatch:
+  push:
+    branches: [ dev ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  check-branch-protection:
+  check-branch-protection-status:
     name: Check Branch Protection Status
     runs-on: ubuntu-latest
     steps:
