@@ -2,6 +2,9 @@ package com.bankplus.loan_forecast.service;
 
 import com.bankplus.loan_forecast.model.CsvLoanData;
 import com.bankplus.loan_forecast.dto.LoanForecastData;
+import com.bankplus.loan_forecast.service.algorithm.AlgorithmFactory;
+import com.bankplus.loan_forecast.service.algorithm.SimpleForecastAlgorithm;
+import com.bankplus.loan_forecast.service.algorithm.ForecastAlgorithm;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +26,13 @@ class CsvProcessingServiceTest {
     void setUp() {
         MeterRegistry registry = new SimpleMeterRegistry();
         LoanProcessingMetrics metrics = new LoanProcessingMetrics(registry);
-        service = new CsvProcessingService(metrics);
+        
+        // Create algorithm components
+        SimpleForecastAlgorithm simpleAlgorithm = new SimpleForecastAlgorithm();
+        ForecastAlgorithm forecastAlgorithm = new ForecastAlgorithm();
+        AlgorithmFactory algorithmFactory = new AlgorithmFactory(simpleAlgorithm, forecastAlgorithm);
+        
+        service = new CsvProcessingService(metrics, algorithmFactory);
     }
 
     @Test

@@ -80,4 +80,9 @@ forecasting:
 
 file:
   input-dir: backend/data/Input/
-  forecast-dir: backend/data/forecast/ 
+  forecast-dir: backend/data/forecast/
+
+# Forecast algorithm configuration
+forecast:
+  algorithm:
+    type: simple  # Options: simple, forecast 
