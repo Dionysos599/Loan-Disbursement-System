@@ -1,0 +1,27 @@
+name: Branch Protection Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-branch-protection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch protection
+        run: |
+          SOURCE_BRANCH="${{ github.head_ref }}"
+          
+          echo "Checking if branch '$SOURCE_BRANCH' is allowed to merge to main"
+          
+          if [[ "$SOURCE_BRANCH" == "dev" ]]; then
+            echo "✅ dev branch is allowed to merge to main"
+            exit 0
+          elif [[ "$SOURCE_BRANCH" == hotfix* ]]; then
+            echo "✅ hotfix branch '$SOURCE_BRANCH' is allowed to merge to main"
+            exit 0
+          else
+            echo "❌ ERROR: Branch '$SOURCE_BRANCH' is not allowed to merge to main"
+            echo "Only 'dev' and 'hotfix/*' branches are allowed"
+            exit 1
+          fi
