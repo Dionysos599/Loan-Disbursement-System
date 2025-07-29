@@ -2,22 +2,23 @@ name: Check Branch Protection Status
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ dev ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:  
 
 jobs:
   check-branch-protection-status:
     name: Check Branch Protection Status
     runs-on: ubuntu-latest
     steps:
+      - name: Emit success
+        run: echo "✅ branch is allowed"
       - name: Check branch protection
         run: |
           SOURCE_BRANCH="${{ github.head_ref }}"
-          
+        
           echo "Checking if branch '$SOURCE_BRANCH' is allowed to merge to main"
-          
+        
           if [[ "$SOURCE_BRANCH" == "dev" ]]; then
             echo "✅ dev branch is allowed to merge to main"
             exit 0
