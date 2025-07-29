@@ -2,6 +2,8 @@ package com.bankplus.loan_forecast.service;
 
 import com.bankplus.loan_forecast.dto.LoanForecastData;
 import com.bankplus.loan_forecast.model.CsvLoanData;
+import com.bankplus.loan_forecast.service.algorithm.AlgorithmFactory;
+import com.bankplus.loan_forecast.service.algorithm.ForecastAlgorithmInterface;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvValidationException;
@@ -26,10 +28,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Slf4j
 public class CsvProcessingService {
     private final LoanProcessingMetrics metrics;
+    private final AlgorithmFactory algorithmFactory;
 
     @Autowired
-    public CsvProcessingService(LoanProcessingMetrics metrics) {
+    public CsvProcessingService(LoanProcessingMetrics metrics, AlgorithmFactory algorithmFactory) {
         this.metrics = metrics;
+        this.algorithmFactory = algorithmFactory;
     }
 
     public List<CsvLoanData> processCsvFile(MultipartFile file) throws IOException {
@@ -393,23 +397,14 @@ public class CsvProcessingService {
             LocalDate forecastDate, 
             LocalDate extendedDate) {
         
-        long daysBetweenStartAndForecast = ChronoUnit.DAYS.between(projectStartDate, forecastDate);
-        long daysBetweenStartAndExtended = ChronoUnit.DAYS.between(projectStartDate, extendedDate);
-        
-        double timeProgress = daysBetweenStartAndExtended > 0 ? 
-            (double) daysBetweenStartAndForecast / daysBetweenStartAndExtended : 0;
-        
-        double totalProgress = percentOfCompletion + timeProgress * (1 - percentOfCompletion);
-        
-        // Ensure total progress is within [0, 1]
-        if (totalProgress < 0) totalProgress = 0;
-        if (totalProgress > 1) totalProgress = 1;
-        
-        // -------- Core algorithm: Sigmoid model --------
-        double sCurveValue = 1.0 / (1.0 + Math.exp(-12.0 * (totalProgress - 0.5)));
-        
-        BigDecimal additionalDisbursement = undisbursedAmount.multiply(BigDecimal.valueOf(sCurveValue));
-        return outstandingBalance.add(additionalDisbursement);
+        ForecastAlgorithmInterface algorithm = algorithmFactory.getActiveAlgorithm();
+        return algorithm.calculateForecastOutstandingBalance(
+                outstandingBalance, 
+                undisbursedAmount, 
+                percentOfCompletion,
+                projectStartDate, 
+                forecastDate, 
+                extendedDate);
     }
     
     private Map<String, Object> convertCsvToMap(CsvLoanData csvData) {

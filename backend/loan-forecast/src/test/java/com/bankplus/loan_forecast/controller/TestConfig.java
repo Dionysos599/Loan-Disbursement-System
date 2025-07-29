@@ -4,6 +4,9 @@ import com.bankplus.loan_forecast.service.CsvProcessingService;
 import com.bankplus.loan_forecast.service.LoanProcessingMetrics;
 import com.bankplus.loan_forecast.service.ReactiveUploadService;
 import com.bankplus.loan_forecast.service.TracingMetricsService;
+import com.bankplus.loan_forecast.service.algorithm.AlgorithmFactory;
+import com.bankplus.loan_forecast.service.algorithm.SimpleForecastAlgorithm;
+import com.bankplus.loan_forecast.service.algorithm.ForecastAlgorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -27,9 +30,26 @@ public class TestConfig {
     }
 
     @Bean
+    public SimpleForecastAlgorithm simpleForecastAlgorithm() {
+        return new SimpleForecastAlgorithm();
+    }
+
+    @Bean
+    public ForecastAlgorithm forecastAlgorithm() {
+        return new ForecastAlgorithm();
+    }
+
+    @Bean
+    public AlgorithmFactory algorithmFactory(SimpleForecastAlgorithm simpleAlgorithm, 
+                                           ForecastAlgorithm forecastAlgorithm) {
+        return new AlgorithmFactory(simpleAlgorithm, forecastAlgorithm);
+    }
+
+    @Bean
     @Primary
-    public CsvProcessingService csvProcessingService(LoanProcessingMetrics loanProcessingMetrics) {
-        return new CsvProcessingService(loanProcessingMetrics);
+    public CsvProcessingService csvProcessingService(LoanProcessingMetrics loanProcessingMetrics, 
+                                                   AlgorithmFactory algorithmFactory) {
+        return new CsvProcessingService(loanProcessingMetrics, algorithmFactory);
     }
 
     @Bean
