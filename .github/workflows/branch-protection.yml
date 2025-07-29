@@ -6,6 +6,7 @@ on:
 
 jobs:
   check-branch-protection:
+    name: Check Branch Protection Status
     runs-on: ubuntu-latest
     steps:
       - name: Check branch protection
