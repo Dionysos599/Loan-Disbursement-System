@@ -578,9 +578,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(tracing_trace_duration_seconds_sum[5m])",
+          "editorMode": "code",
+          "expr": "rate(tracing_trace_duration_seconds_sum[5m]) / rate(tracing_trace_duration_seconds_count[5m])",
           "interval": "",
           "legendFormat": "Duration Rate",
+          "range": true,
           "refId": "A"
         }
       ],
@@ -796,6 +798,7 @@
       "type": "timeseries"
     }
   ],
+  "refresh": "auto",
   "schemaVersion": 41,
   "tags": [
     "loan-forecast",
@@ -813,6 +816,6 @@
   "timezone": "browser",
   "title": "Loan Forecast System - Enhanced Monitoring",
   "uid": "loan-forecast-monitoring",
-  "version": 4,
+  "version": 2,
   "weekStart": ""
 }
