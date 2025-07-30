@@ -6,7 +6,6 @@ import com.bankplus.loan_forecast.service.ReactiveUploadService;
 import com.bankplus.loan_forecast.service.TracingMetricsService;
 import com.bankplus.loan_forecast.service.algorithm.AlgorithmFactory;
 import com.bankplus.loan_forecast.service.algorithm.SimpleForecastAlgorithm;
-import com.bankplus.loan_forecast.service.algorithm.ForecastAlgorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -35,14 +34,8 @@ public class TestConfig {
     }
 
     @Bean
-    public ForecastAlgorithm forecastAlgorithm() {
-        return new ForecastAlgorithm();
-    }
-
-    @Bean
-    public AlgorithmFactory algorithmFactory(SimpleForecastAlgorithm simpleAlgorithm, 
-                                           ForecastAlgorithm forecastAlgorithm) {
-        return new AlgorithmFactory(simpleAlgorithm, forecastAlgorithm);
+    public AlgorithmFactory algorithmFactory(SimpleForecastAlgorithm simpleAlgorithm) {
+        return new AlgorithmFactory(simpleAlgorithm);
     }
 
     @Bean

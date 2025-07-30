@@ -21,11 +21,19 @@ public class AlgorithmFactory {
     private final Map<String, ForecastAlgorithmInterface> algorithms;
     
     @Autowired
-    public AlgorithmFactory(SimpleForecastAlgorithm simpleAlgorithm,
-                           ForecastAlgorithm forecastAlgorithm) {
+    public AlgorithmFactory(SimpleForecastAlgorithm simpleAlgorithm) {
         this.algorithms = new HashMap<>();
         this.algorithms.put("simple", simpleAlgorithm);
-        this.algorithms.put("forecast", forecastAlgorithm);
+        
+        // Try to inject ForecastAlgorithm if it exists using reflection
+        try {
+            Class<?> forecastAlgorithmClass = Class.forName("com.bankplus.loan_forecast.service.algorithm.ForecastAlgorithm");
+            ForecastAlgorithmInterface forecastAlgorithm = (ForecastAlgorithmInterface) forecastAlgorithmClass.getDeclaredConstructor().newInstance();
+            this.algorithms.put("forecast", forecastAlgorithm);
+            log.info("ForecastAlgorithm found and added to factory");
+        } catch (Exception e) {
+            log.info("ForecastAlgorithm not available, using only SimpleForecastAlgorithm: {}", e.getMessage());
+        }
         
         log.info("Algorithm factory initialized with algorithms: {}", algorithms.keySet());
     }
@@ -91,4 +99,4 @@ public class AlgorithmFactory {
     public boolean isForecastAlgorithmAvailable() {
         return algorithms.containsKey("forecast");
     }
-} 
+}
