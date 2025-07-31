@@ -1,28 +1,20 @@
-# 🏦 Loan Disbursement System
+# 🏦 Loan Disbursement System - Lightweight Version
 
-A comprehensive loan forecast and portfolio management system designed for American Plus Bank. This system provides loan disbursement predictions using a sigmoid model, real-time visualization, and comprehensive data analytics.
-
-## 📋 Table of Contents
-
-- [Features](#-features)
-- [Quick Start](#-quick-start)
-- [Usage Guide](#-usage-guide)
-- [API Documentation](#-api-documentation)
-- [Troubleshooting](#-troubleshooting)
-- [To Contribute](#-to-contribute)
+A lightweight loan forecast and portfolio management system designed for American Plus Bank. This system provides loan disbursement predictions using a sigmoid model, real-time visualization, and comprehensive data analytics - all running entirely in the browser.
 
 ## ✨ Features
 
 ### 🎯 Core Capabilities
-- **CSV Data Upload**: Upload loan data in CSV format
+- **CSV Data Upload**: Upload loan data in CSV format directly in the browser
 - **Forecast Dashboard**: Click any processed file to view a corresponding dedicated dashboard with analytics and charts
-- **Disbursement Forecasting**: Realistic model for disbursement predictions
-- **Export Functionality**: Check and download forecast results
+- **Disbursement Forecasting**: Realistic model for disbursement predictions using S-curve algorithm
+- **Export Functionality**: Automatic download of forecast results after processing
+- **Local Storage**: All data is stored locally in the browser
 
 ### 📊 Dashboard Metrics
 - **Total Loans**: Count of loans
 - **Total Loan Amount**: Sum of all loan principal amounts
-- **Max Montly Disbursement**: Peak projected outstanding balance
+- **Max Monthly Disbursement**: Peak projected outstanding balance
 - **Data Points**: Total number of forecast data points generated
 
 ### 🔮 Forecasting Algorithm
@@ -34,9 +26,8 @@ A comprehensive loan forecast and portfolio management system designed for Ameri
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Docker Desktop**: Ensure Docker is installed and running
-- **Git**: For cloning the repository
-- **Minimum 4GB RAM**: For optimal performance
+- **Node.js 18+**: For running the React application
+- **Modern Browser**: Chrome, Firefox, Safari, or Edge with localStorage support
 
 ### Installation
 
@@ -44,32 +35,21 @@ A comprehensive loan forecast and portfolio management system designed for Ameri
    ```bash
    git clone https://github.com/Dionysos599/Loan-Disbursement-System.git
    cd loan-disbursement-system
+   git checkout feature/light_weight_system
    ```
 
-2. **Start the System**
+2. **Install Dependencies**
    ```bash
-   # Build and start all services
-   ./build.sh
-
-   # Or start individual components
-   ./build.sh --b    # Backend service only
-   ./build.sh --f    # Frontend application only
-   ./build.sh --nd   # Build without Docker containers
+   npm run install-deps
    ```
 
-3. **Access the Application**
+3. **Start the Application**
+   ```bash
+   npm start
+   ```
+
+4. **Access the Application**
    - **Frontend**: http://localhost:3000
-   - **Backend API**: http://localhost:8081
-   - **Health Check**: http://localhost:8081/api/loan-forecast/ping
-
-4. **Verify Installation**
-   ```bash
-   # Check running services
-   docker ps
-   
-   # Test system functionality
-   ./test-system.sh
-   ```
 
 ## 📖 Usage Guide
 
@@ -89,6 +69,7 @@ A comprehensive loan forecast and portfolio management system designed for Ameri
    - Choose forecast start month (e.g., "2024-11-01")
    - Click "Upload and Process"
    - Monitor upload progress
+   - **Automatic Download**: CSV file will be automatically downloaded when processing completes
 
 ### 2. Data Format
 
@@ -116,9 +97,9 @@ L001234,John Doe,500000,12/31/2025,6/30/2026,350000,150000,70,45
 L001235,Jane Smith,750000,6/30/2026,12/31/2026,600000,150000,80,60
 ```
 
-### 2. View Dashboard
+### 3. View Dashboard
 
-1. **Upload for Forecast Dashboard**
+1. **Access Forecast Dashboard**
    - Click any row in the Processed Forecast table to open a dedicated dashboard for that file
 
 2. **Portfolio Overview**
@@ -129,21 +110,22 @@ L001235,Jane Smith,750000,6/30/2026,12/31/2026,600000,150000,80,60
 
 3. **Interactive Charts**
    - Loan forecast timeline
-   - Geographic distribution
+   - Property type distribution
    - Outstanding balance trends
 
-### 3. Export Forecast Data
+### 4. Export Forecast Data
 
-1. **Access Export Function**
-   - Select desired forecast data
-   - Click the download button
+1. **Automatic Download**
+   - CSV file is automatically downloaded when processing completes successfully
+   - Manual download is also available via the download button
 
 2. **File Content**
    - Forecast loan data
    - Monthly forecast projections
    - Forecast start/end dates
+   - Summary row with totals
 
-### 4. Monitor Upload History
+### 5. Monitor Upload History
 
 1. **View Past Uploads**
    - Check upload status (SUCCESS/FAILED/PROCESSING)
@@ -155,120 +137,35 @@ L001235,Jane Smith,750000,6/30/2026,12/31/2026,600000,150000,80,60
    - Trace individual loan processing
    - Download or delete historical forecasts
 
-## 🔗 API Documentation
+## 🔧 Technical Architecture
 
-### Core Endpoints
+### Frontend Technology Stack
+- **React 19.1.0**: Modern React with hooks
+- **TypeScript 4.9.5**: Type-safe development
+- **Material-UI 7.2.0**: Modern UI components
+- **Recharts**: Data visualization library
+- **Day.js**: Date handling
+- **Local Storage**: Browser-based data persistence
 
-#### Upload CSV File
-```http
-POST /api/loan-forecast/upload
-Content-Type: multipart/form-data
+### Key Components
+- **CSV Processor**: Handles file parsing and validation
+- **Forecast Algorithm**: S-curve prediction model
+- **Local Storage Service**: Manages data persistence
+- **Dashboard Components**: Interactive visualizations
 
-Parameters:
-- file: CSV file (multipart)
-- startMonth: Forecast start date (YYYY-MM-DD)
+### Data Flow
+1. **File Upload**: CSV file is read and parsed in the browser
+2. **Data Validation**: Required columns and data types are validated
+3. **Forecast Calculation**: S-curve algorithm processes each loan
+4. **Result Generation**: Forecast data and CSV export are created
+5. **Local Storage**: Results are saved to browser localStorage
+6. **Auto Download**: CSV file is automatically downloaded
 
-Response: DataIngestionResponse with batch ID and processing results
-```
+## 🔧 Development
 
-#### Get Upload History
-```http
-GET /api/loan-forecast/upload-history
+### Local Development Environment
 
-Response: List of all upload batches with metadata (only valid records with existing files)
-```
-
-#### Download Forecast CSV
-```http
-GET /api/loan-forecast/download/{batchId}
-
-Response: CSV file with forecast data
-```
-
-#### Get Forecast Data
-```http
-GET /api/loan-forecast/upload-history/{batchId}/forecast-data
-
-Response: JSON array of loan forecast data for the specified file
-```
-
-#### Health Check
-```http
-GET /api/loan-forecast/ping
-
-Response: Pong
-```
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-#### 1. Upload Failed: Network Error
-**Symptoms**: Upload fails with "Network error" message
-
-**Solutions**:
-- Verify backend service is running: `docker ps`
-- Check backend logs: `docker logs loan-forecast-service`
-- Ensure CSV format matches requirements
-- Verify Docker Desktop is running
-
-#### 2. Docker Build Failures
-**Symptoms**: Build script reports Docker errors
-
-**Solutions**:
-- Start Docker Desktop
-- Clean Docker cache: `docker system prune`
-- Rebuild services: `./build.sh --docker-only`
-
-#### 3. CSV Processing Errors
-**Symptoms**: "Required column missing" errors
-
-**Solutions**:
-- Verify all required columns are present
-- Check for hidden characters in column headers
-- Ensure proper CSV encoding (UTF-8)
-- Remove empty rows/columns
-
-#### 4. Memory Issues
-**Symptoms**: Services fail to start or crash
-
-**Solutions**:
-- Increase Docker memory allocation (minimum 4GB)
-- Close unnecessary applications
-- Monitor system resources: `docker stats`
-
-### Log Locations
-- **Backend Logs**: `docker logs loan-forecast-service`
-- **Frontend Logs**: `docker logs loan-forecast-frontend`
-- **Database Logs**: `docker logs loan-forecast-postgres`
-
-### Performance Optimization
-- Use SSD storage for Docker volumes
-- Allocate sufficient RAM to Docker
-- Process smaller CSV files (< 10MB) for better performance
-- Clear browser cache if frontend issues persist
-
-## 🤝 To Contribute
-
-### Development Setup
-
-#### Prerequisites
-- **Java 17+**: For backend development
-- **Node.js 18+**: For frontend development
-- **Maven 3.8+**: For backend builds
-- **Docker Desktop**: For containerization
-
-#### Local Development Environment
-
-1. **Backend Development**
-   ```bash
-   cd backend/loan-forecast
-   mvn clean install
-   mvn spring-boot:run
-   # Backend runs on http://localhost:8081
-   ```
-
-2. **Frontend Development**
+1. **Frontend Development**
    ```bash
    cd frontend
    npm install
@@ -276,168 +173,117 @@ Response: Pong
    # Frontend runs on http://localhost:3000
    ```
 
-3. **Database Setup** (Optional for local testing)
+2. **Testing**
    ```bash
-   cd docker
-   docker-compose up postgres redis -d
+   cd frontend
+   npm test
    ```
 
 ### Code Structure
 
 ```
 loan-disbursement-system/
-├── backend/loan-forecast/         # Spring Boot backend service
-│   ├── src/main/java/             # Java source code
-│   ├── src/main/resources/        # Configuration files
-│   └── pom.xml                    # Maven dependencies
 ├── frontend/                      # React frontend application
 │   ├── src/
-│   │   ├── __tests__/             # Test files (App.test.tsx, DataUpload.test.tsx)
-│   │   ├── assets/                # Static assets (CSS, images, logo.svg)
-│   │   ├── components/            # React components (DataUpload, PortfolioDashboard, DashboardModal, Layout)
-│   │   ├── constants/             # Application constants and configuration
-│   │   ├── services/              # API service layer
+│   │   ├── components/            # React components
+│   │   │   ├── DataUpload.tsx     # Main upload interface
+│   │   │   ├── PortfolioDashboard.tsx # Dashboard visualization
+│   │   │   └── DashboardModal.tsx # Modal wrapper
+│   │   ├── services/              # Business logic services
+│   │   │   ├── csvProcessor.ts    # CSV processing and forecasting
+│   │   │   ├── localStorage.ts    # Local storage management
+│   │   │   └── api.ts             # API service layer
 │   │   ├── types/                 # TypeScript type definitions
-│   │   ├── utils/                 # Utility functions and helpers
-│   │   ├── App.tsx                # Main App component
-│   │   ├── index.tsx              # Application entry point
-│   │   └── setupTests.ts          # Jest test setup
-│   ├── public/                    # Public assets and index.html
-│   ├── package.json               # npm dependencies and scripts
-│   ├── tsconfig.json              # TypeScript configuration
-├── docker/                        # Docker configuration
-│   ├── docker-compose.yml         # Service orchestration
-│   └── init.sql                   # Database initialization
-└── build.sh                       # Build automation script
+│   │   └── utils/                 # Utility functions
+│   ├── package.json               # Frontend dependencies
+│   └── tsconfig.json              # TypeScript configuration
+├── package.json                   # Root package.json
+└── README.md                      # This file
 ```
 
-#### Frontend Import Conventions
+## 🚀 Deployment
 
-The frontend uses TypeScript path mapping for clean imports:
-
-```typescript
-// Recommended imports
-import DataUpload from '@/components/DataUpload';
-import { loanForecastAPI } from '@/services/api';
-import { validateFile } from '@/utils/helpers';
-import { API_BASE_URL } from '@/constants';
-import '@/assets/App.css';
-
-// Relative imports also supported
+### Build for Production
+```bash
+npm run build
 ```
+
+### Static Hosting
+The built application can be deployed to any static hosting service:
+- **Netlify**: Drag and drop the `build` folder
+- **Vercel**: Connect your repository
+- **GitHub Pages**: Deploy from the `build` folder
+- **AWS S3**: Upload the `build` folder
+
+### Environment Variables
+No environment variables are required for the lightweight version.
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### 1. File Upload Fails
+**Symptoms**: Upload fails with processing error
+
+**Solutions**:
+- Verify CSV format matches requirements
+- Check that all required columns are present
+- Ensure proper CSV encoding (UTF-8)
+- Remove empty rows/columns
+
+#### 2. Browser Compatibility
+**Symptoms**: Application doesn't work in older browsers
+
+**Solutions**:
+- Use modern browsers (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
+- Enable JavaScript
+- Clear browser cache and cookies
+
+#### 3. Local Storage Issues
+**Symptoms**: Data disappears after browser restart
+
+**Solutions**:
+- Check if localStorage is enabled
+- Clear browser data if storage is full
+- Use private/incognito mode for testing
+
+#### 4. Performance Issues
+**Symptoms**: Slow processing of large files
+
+**Solutions**:
+- Process smaller CSV files (< 10MB) for better performance
+- Close unnecessary browser tabs
+- Use a modern computer with sufficient RAM
+
+### Browser Support
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+## 🤝 Contributing
 
 ### Development Guidelines
-
-#### Backend Development
-
-1. **Code Standards**
-   - Follow Java naming conventions
-   - Use Lombok for boilerplate reduction
-   - Add comprehensive logging with @Slf4j
-   - Write unit tests for service layer
-
-2. **API Development**
-   - Use RESTful endpoints
-   - Include proper HTTP status codes
-   - Add @CrossOrigin for frontend integration
-   - Document endpoints with clear comments
-
-3. **Database Changes**
-   - Use JPA for data access
-   - Include database migrations
-   - Test with PostgreSQL locally
-
-#### Frontend Development
 
 1. **Code Standards**
    - Use TypeScript for type safety
    - Follow React functional component patterns
    - Implement proper error handling
    - Use Material-UI components consistently
-   - Follow the established directory structure (components, services, utils, constants)
 
-2. **Directory Organization**
-   - Place test files in `src/__tests__/` directory
-   - Store static assets (CSS, images) in `src/assets/` or `public/`
-   - Use `src/utils/` for common utility functions
-   - Define constants in `src/constants/` directory
-   - Place components in `src/components/` directory
+2. **Testing**
+   - Write unit tests for utility functions
+   - Test CSV processing logic
+   - Verify forecast algorithm accuracy
 
-3. **State Management**
-   - Use React hooks for local state
-   - Implement proper loading states
-   - Handle errors gracefully
-   - Use centralized state management when needed
+3. **Performance**
+   - Optimize for large CSV files
+   - Minimize bundle size
+   - Use efficient data structures
 
-4. **API Integration**
-   - Use centralized API service in `src/services/`
-   - Implement proper error handling
-   - Add loading indicators
-   - Use constants for API configuration
+## 📄 License
 
-### Build Process
-
-#### Build Script Options
-```bash
-./build.sh                    # Full build (backend + frontend + Docker)
-./build.sh --backend-only     # Backend Maven + Docker build
-./build.sh --frontend-only    # Frontend npm + Docker build
-./build.sh --no-docker       # Build without Docker containers
-./build.sh --docker-only     # Docker build only
-```
-
-#### Testing
-```bash
-# Backend tests
-cd backend/loan-forecast && mvn test
-
-# Frontend tests
-cd frontend && npm test
-
-# Frontend tests in Docker
-docker exec loan-forecast-frontend npm test
-
-# Sanity tests
-./test-system.sh
-```
-
-### Contribution Workflow
-
-1. **Create Feature Branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Development**
-   - Write code following established patterns
-   - Add tests for new functionality
-   - Update documentation as needed
-
-3. **Testing**
-   - Run unit tests: `mvn test` (backend), `npm test` (frontend)
-   - Test full system: `./build.sh && ./test-system.sh`
-   - Verify Docker builds successfully
-
-4. **Submit Pull Request**
-   - Ensure all tests pass
-   - Update README if needed
-   - Include clear description of changes
-
-### Key Areas for Contribution
-
-- **Algorithm Enhancement**: Improve S-curve forecasting accuracy
-- **Dashboard Features**: Add new visualization components
-- **Performance Optimization**: Enhance large file processing
-- **Testing Coverage**: Expand unit and integration tests
-- **Documentation**: Improve user guides and API docs
-- **Mobile Responsiveness**: Enhance mobile user experience
-
-### Getting Help
-
-- **Documentation**: Check existing README and code comments
-- **Issues**: Create GitHub issues for bugs or feature requests
-- **Code Review**: All contributions require peer review
-- **Testing**: Ensure all tests pass before submitting
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 

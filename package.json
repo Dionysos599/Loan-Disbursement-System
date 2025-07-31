@@ -1,5 +1,21 @@
 {
-  "dependencies": {
-    "ws": "^8.18.3"
-  }
+  "name": "loan-disbursement-system-lightweight",
+  "version": "1.0.0",
+  "description": "Lightweight loan forecast system - frontend only",
+  "private": true,
+  "scripts": {
+    "start": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "test": "cd frontend && npm test",
+    "install-deps": "cd frontend && npm install"
+  },
+  "keywords": [
+    "loan",
+    "forecast",
+    "react",
+    "typescript",
+    "frontend"
+  ],
+  "author": "American Plus Bank",
+  "license": "MIT"
 }
