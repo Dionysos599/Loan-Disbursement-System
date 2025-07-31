@@ -1,6 +1,6 @@
 import { UploadHistory, DataIngestionResponse, LoanForecastData } from '../types/loan';
-import { csvProcessor } from './csvProcessor';
 import { localStorageService } from './localStorage';
+import { csvProcessor } from './csvProcessor';
 
 // 模拟延迟以提供更好的用户体验
 const simulateProcessing = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -28,8 +28,8 @@ export const loanForecastAPI = {
       // 模拟处理延迟
       await simulateProcessing(2000);
 
-      // 处理CSV文件
-      const result = await csvProcessor.processUpload(file, startMonth);
+      // 处理CSV文件，使用相同的batchId
+      const result = await csvProcessor.processUploadWithBatchId(file, startMonth, batchId);
 
       // 更新上传记录
       const updatedUpload: UploadHistory = {
@@ -106,24 +106,47 @@ export const loanForecastAPI = {
   // 下载预测CSV
   async downloadForecastCsv(batchId: string): Promise<void> {
     try {
-      const uploadHistory = localStorageService.getUploadHistory();
-      const upload = uploadHistory.find(item => item.batchId === batchId);
+      console.log('Starting download for batchId:', batchId);
       
-      if (!upload || !upload.csvUrl) {
-        throw new Error('CSV file not found');
+      const uploadHistory = localStorageService.getUploadHistory();
+      console.log('Upload history:', uploadHistory);
+      console.log('Upload history batchIds:', uploadHistory.map(item => item.batchId));
+      
+      const upload = uploadHistory.find(item => item.batchId === batchId);
+      console.log('Found upload:', upload);
+      
+      if (!upload) {
+        throw new Error('Upload record not found');
       }
 
+      // 获取预测数据
+      const forecastData = localStorageService.getForecastData(batchId);
+      console.log('Forecast data:', forecastData);
+      
+      if (!forecastData || forecastData.length === 0) {
+        throw new Error('Forecast data not found');
+      }
+      
+      // 生成CSV URL
+      const csvUrl = csvProcessor.generateForecastCsv(forecastData, upload.originalFilename);
+      console.log('Generated CSV URL:', csvUrl);
+      
+      // 更新localStorage中的csvUrl
+      localStorageService.updateUploadStatus(batchId, upload.uploadStatus, csvUrl);
+      
       // 创建下载链接
       const link = document.createElement('a');
-      link.href = upload.csvUrl;
+      link.href = csvUrl;
       link.download = `${upload.originalFilename.replace(/\.[^.]*$/, '')}_forecast.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
+      console.log('Download link clicked successfully');
+
       // 清理URL对象
       setTimeout(() => {
-        URL.revokeObjectURL(upload.csvUrl!);
+        URL.revokeObjectURL(csvUrl);
       }, 1000);
     } catch (error) {
       console.error('Error downloading CSV:', error);

@@ -123,31 +123,18 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ batchId, open, 
       return total + (loan.forecastData ? Object.keys(loan.forecastData).length : 0);
     }, 0);
 
-    // Group by property type
-    const byPropertyType = forecastData.reduce((acc: Record<string, number>, loan) => {
-      const type = loan.propertyType || 'Unknown';
-      acc[type] = (acc[type] || 0) + (loan.totalForecastedAmount || 0);
+    // Group by loan number (since we don't have property type)
+    const byLoanNumber = forecastData.reduce((acc: Record<string, number>, loan) => {
+      const loanId = loan.loanNumber || 'Unknown';
+      acc[loanId] = (acc[loanId] || 0) + (loan.totalForecastedAmount || 0);
       return acc;
     }, {});
 
-    const propertyTypeData = Object.entries(byPropertyType).map(([type, amount]) => ({
-      name: type,
-      value: amount,
-      percentage: totalForecastAmount > 0 ? ((amount / totalForecastAmount) * 100).toFixed(1) : '0',
-    }));
-
-    // Group by city
-    const byCity = forecastData.reduce((acc: Record<string, number>, loan) => {
-      const city = loan.city || 'Unknown';
-      acc[city] = (acc[city] || 0) + (loan.totalForecastedAmount || 0);
-      return acc;
-    }, {});
-
-    const cityData = Object.entries(byCity)
+    const loanNumberData = Object.entries(byLoanNumber)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 5)
-      .map(([city, amount]) => ({
-        name: city,
+      .map(([loanId, amount]) => ({
+        name: loanId,
         value: amount,
         percentage: totalForecastAmount > 0 ? ((amount / totalForecastAmount) * 100).toFixed(1) : '0',
       }));
@@ -159,8 +146,8 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ batchId, open, 
         maxLoanForecast,
         totalDataPoints,
       },
-      propertyTypeData,
-      cityData,
+      propertyTypeData: loanNumberData, // 重命名为propertyTypeData以保持兼容性
+      cityData: loanNumberData, // 重命名为cityData以保持兼容性
     };
   };
 
