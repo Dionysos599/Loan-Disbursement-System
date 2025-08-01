@@ -39,8 +39,8 @@ fi
 
 echo -e "${GREEN}✅ npm is installed ($(npm --version))${NC}"
 
-# Navigate to lightweight-system directory
-cd lightweight-system
+# Navigate to frontend directory
+cd frontend
 
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then

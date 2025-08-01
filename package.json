@@ -4,10 +4,10 @@
   "description": "Lightweight loan forecast system - frontend only",
   "private": true,
   "scripts": {
-    "start": "cd lightweight-system && npm start",
-    "build": "cd lightweight-system && npm run build",
-    "test": "cd lightweight-system && npm test",
-    "install-deps": "cd lightweight-system && npm install"
+    "start": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "test": "cd frontend && npm test",
+    "install-deps": "cd frontend && npm install"
   },
   "keywords": [
     "loan",

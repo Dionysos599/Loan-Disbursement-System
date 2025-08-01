@@ -1,3 +1,17 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+**/target/
+**/build/
+**/out/
+
+# Maven
+.mvn/
+!**/src/main/**/mvnw
+!**/src/main/**/mvnw.cmd
+
 # Node.js
 node_modules/
 **/node_modules/
@@ -23,9 +37,10 @@ Thumbs.db
 *.swp
 *.swo
 
-# Environment
+# Docker and environment
 **/.env
 **/.env.*
+docker/*.env
 
 # Miscellaneous
 *.pid
@@ -37,8 +52,14 @@ Thumbs.db
 **/.nyc_output/
 **/test-output/
 
+# Python (if any scripts)
+__pycache__/
+*.pyc
+
 # Embedded git repos (should not be tracked)
 **/.git/
 
 # Local configuration files
 *.local.md
+
+backend/data/

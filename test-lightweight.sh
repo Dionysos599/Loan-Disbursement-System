@@ -52,7 +52,7 @@ echo -e "\n${BLUE}Testing Frontend Compilation:${NC}"
 
 # Frontend compilation test
 echo -n "Frontend Compilation... "
-if cd lightweight-system && npm run build > /dev/null 2>&1; then
+if cd frontend && npm run build > /dev/null 2>&1; then
     echo -e "${GREEN}✓ PASS${NC}"
     cd - > /dev/null
 else
@@ -62,7 +62,7 @@ fi
 
 # Frontend dependencies check
 echo -n "Frontend Dependencies... "
-if [ -d "lightweight-system/node_modules" ]; then
+if [ -d "frontend/node_modules" ]; then
     echo -e "${GREEN}✓ PASS${NC}"
 else
     echo -e "${YELLOW}⚠ MISSING${NC}"
@@ -80,8 +80,8 @@ echo "Processing: Client-side CSV processing"
 
 echo -e "\n${YELLOW}Quick Commands:${NC}"
 echo "Start System: ./start.sh"
-echo "Build Frontend: cd lightweight-system && npm run build"
-echo "Test Frontend: cd lightweight-system && npm test"
+echo "Build Frontend: cd frontend && npm run build"
+echo "Test Frontend: cd frontend && npm test"
 
 # Cleanup
 rm -f /tmp/response.json 
