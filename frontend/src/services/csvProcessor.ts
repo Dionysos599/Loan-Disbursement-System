@@ -502,7 +502,7 @@ export class CsvProcessor {
   }
 
   // 生成预测CSV
-  generateForecastCsv(forecastDataList: LoanForecastData[], originalFileName: string, originalCsvData?: CsvLoanData[]): string {
+  generateForecastCsv(forecastDataList: LoanForecastData[], originalFileName: string): string {
     const baseName = originalFileName.replace(/\.[^.]*$/, ''); // 移除扩展名
     const outputFileName = `${baseName}_forecast.csv`;
 
@@ -533,31 +533,20 @@ export class CsvProcessor {
     const columnSums: Record<string, number> = {};
     months.forEach(month => columnSums[month] = 0);
 
-    // 创建原始数据的映射
-    const originalDataMap = new Map<string, CsvLoanData>();
-    if (originalCsvData) {
-      originalCsvData.forEach(data => {
-        originalDataMap.set(data.loanNumber, data);
-      });
-    }
-
     // 添加数据行
     for (const forecast of forecastDataList) {
       if (!forecast.loanNumber || forecast.loanNumber.trim() === '') {
         continue;
       }
 
-      // 获取原始数据
-      const originalData = originalDataMap.get(forecast.loanNumber);
-
       const row = [
         forecast.loanNumber,
         forecast.loanAmount || '',
-        originalData?.maturityDate || '', // Maturity Date
-        originalData?.extendedDate || '', // Extended Date
-        originalData?.outstandingBalance || '', // Outstanding Balance
-        originalData?.undisbursedAmount || '', // Undisbursed Amount
-        originalData?.percentOfCompletion || ''  // % of Completion
+        '', // Maturity Date
+        '', // Extended Date
+        '', // Outstanding Balance
+        '', // Undisbursed Amount
+        ''  // % of Completion
       ];
 
       // 添加预测数据
@@ -603,8 +592,8 @@ export class CsvProcessor {
       // 转换为预测数据
       const forecastDataList = this.convertToLoanForecastData(csvDataList, startMonth);
       
-      // 生成CSV下载链接，传递原始CSV数据
-      const csvUrl = this.generateForecastCsv(forecastDataList, file.name, csvDataList);
+      // 生成CSV下载链接
+      const csvUrl = this.generateForecastCsv(forecastDataList, file.name);
       
       return {
         batchId,
