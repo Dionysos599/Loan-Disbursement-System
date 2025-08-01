@@ -49,55 +49,11 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<any>(null);
   const [dashboardBatchId, setDashboardBatchId] = useState<string | null>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   // Load upload history on component mount
   useEffect(() => {
     fetchUploadHistory();
   }, []);
-
-  // Drag and drop handlers
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Only set drag over to false if we're leaving the drop zone entirely
-    if (!dropZoneRef.current?.contains(e.relatedTarget as Node)) {
-      setIsDragOver(false);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      const file = files[0];
-      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
-        setSelectedFile(file);
-        setError(null);
-        setProgress(null);
-        setUploadResult(null);
-      } else {
-        setError('Please select a CSV file');
-        setSelectedFile(null);
-      }
-    }
-  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -171,15 +127,12 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
       
       // Refresh upload history
       await fetchUploadHistory();
-      // auto download csv file
+      
+      // 自动下载CSV文件
       if (result.status === 'SUCCESS') {
-        setTimeout(async () => {
-          try {
-            await handleDownload(result.batchId);
-          } catch (error) {
-            console.error('Auto download failed:', error);
-          }
-        }, 500); // delay 0.5 second to ensure data is saved
+        setTimeout(() => {
+          handleDownload(result.batchId);
+        }, 1000); // 延迟1秒后自动下载
       }
       
       setSelectedFile(null);
@@ -263,96 +216,35 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
             mb: 3,
             flexWrap: 'wrap'
           }}>
-            {/* File Selection with Drag Drop Area */}
-            <Box 
-              sx={{ 
-                flex: '1 1 200px', 
-                minWidth: '200px',
-                position: 'relative'
-              }}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              ref={dropZoneRef}
-            >
-              {/* Invisible drag drop area behind the button */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -20,
-                  left: -20,
-                  right: -20,
-                  bottom: -20,
-                  border: `2px dashed ${isDragOver ? theme.palette.primary.main : 'transparent'}`,
-                  borderRadius: 2,
-                  backgroundColor: isDragOver ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-                  transition: 'all 0.3s ease-in-out',
-                  zIndex: 0,
-                  pointerEvents: isDragOver ? 'auto' : 'none'
-                }}
+            {/* File Selection */}
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <input
+                id="file-input"
+                type="file"
+                accept=".csv"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
               />
-              
-              {/* Original button on top */}
-              <Box sx={{ position: 'relative', zIndex: 1 }}>
-                <input
-                  id="file-input"
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileSelect}
-                  style={{ display: 'none' }}
-                  ref={fileInputRef}
-                />
-                <label htmlFor="file-input">
-                  <Button
-                    variant="outlined"
-                    component="span"
-                    startIcon={<CloudUploadIcon />}
-                    sx={{ 
-                      width: '100%',
-                      height: '56px',
+              <label htmlFor="file-input">
+                <Button
+                  variant="outlined"
+                  component="span"
+                  startIcon={<CloudUploadIcon />}
+                  sx={{ 
+                    width: '100%',
+                    height: '56px',
+                    borderStyle: 'dashed',
+                    borderWidth: 2,
+                    '&:hover': {
                       borderStyle: 'dashed',
                       borderWidth: 2,
-                      '&:hover': {
-                        borderStyle: 'dashed',
-                        borderWidth: 2,
-                        backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                      }
-                    }}
-                  >
-                    {selectedFile ? 'Change File' : 'Select CSV File'}
-                  </Button>
-                </label>
-              </Box>
-              
-              {/* Drag drop hint (only visible when dragging) */}
-              {isDragOver && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    zIndex: 2,
-                    pointerEvents: 'none'
+                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                    }
                   }}
                 >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: theme.palette.primary.main,
-                      fontWeight: 600,
-                      textAlign: 'center',
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      padding: 1,
-                      borderRadius: 1,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                    }}
-                  >
-                    Drop CSV file here
-                  </Typography>
-                </Box>
-              )}
+                  {selectedFile ? 'Change File' : 'Select CSV File'}
+                </Button>
+              </label>
             </Box>
 
             {/* Date Picker */}
@@ -471,6 +363,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
                   <TableRow sx={{ backgroundColor: '#15418C' }}>
                     <TableCell sx={{ fontWeight: 600, color: '#fff' }}>Filename</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: '#fff' }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#fff' }}>Records</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: '#fff' }}>Upload Date</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: '#fff' }}>Actions</TableCell>
                   </TableRow>
@@ -505,6 +398,16 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
                           size="small"
                           sx={{ fontWeight: 500 }}
                         />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          <strong>{history.totalRecords}</strong> total
+                          {history.processedRecords !== undefined && (
+                            <Typography component="span" color="text.secondary" sx={{ ml: 1 }}>
+                              ({history.processedRecords} processed)
+                            </Typography>
+                          )}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
@@ -556,7 +459,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onForecastDataGenerated }) => {
                   ))}
                   {uploadHistory.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} align="center">
+                      <TableCell colSpan={5} align="center">
                         <Box sx={{ py: 4 }}>
                           <Typography color="text.secondary" variant="body1">
                             No upload history found

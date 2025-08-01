@@ -2,18 +2,13 @@
 
 export interface LoanForecastData {
   loanNumber: string;
-  customerName?: string;
+  customerName: string;
   loanAmount: number;
+  propertyType?: string;
+  city?: string;
   forecastData: Record<string, number>;
-  totalForecastedAmount: number;
-  scenarioName: string;
-  // 添加原始CSV数据字段
-  maturityDate?: string;
-  extendedDate?: string;
-  outstandingBalance?: string;
-  undisbursedAmount?: string;
-  percentOfCompletion?: string;
-  percentOfLoanDrawn?: string;
+  totalForecastedAmount?: number;
+  scenarioName?: string;
 }
 
 export interface UploadHistory {

@@ -426,14 +426,7 @@ export class CsvProcessor {
         loanAmount: forecast.loanAmount,
         forecastData: forecast.forecastData,
         totalForecastedAmount: forecast.totalForecastedAmount,
-        scenarioName: forecast.loanNumber || 'N/A',
-        // 保留原始CSV数据
-        maturityDate: forecast.maturityDate,
-        extendedDate: forecast.extendedDate,
-        outstandingBalance: forecast.outstandingBalance,
-        undisbursedAmount: forecast.undisbursedAmount,
-        percentOfCompletion: forecast.percentOfCompletion,
-        percentOfLoanDrawn: forecast.percentOfLoanDrawn
+        scenarioName: forecast.loanNumber || 'N/A'
       };
     } catch (error) {
       console.error('Error converting forecast map to LoanForecastData:', error);
@@ -509,7 +502,7 @@ export class CsvProcessor {
   }
 
   // 生成预测CSV
-  generateForecastCsv(forecastDataList: LoanForecastData[], originalFileName: string): string {
+  generateForecastCsv(forecastDataList: LoanForecastData[], originalFileName: string, originalCsvData?: CsvLoanData[]): string {
     const baseName = originalFileName.replace(/\.[^.]*$/, ''); // 移除扩展名
     const outputFileName = `${baseName}_forecast.csv`;
 
@@ -540,25 +533,36 @@ export class CsvProcessor {
     const columnSums: Record<string, number> = {};
     months.forEach(month => columnSums[month] = 0);
 
+    // 创建原始数据的映射
+    const originalDataMap = new Map<string, CsvLoanData>();
+    if (originalCsvData) {
+      originalCsvData.forEach(data => {
+        originalDataMap.set(data.loanNumber, data);
+      });
+    }
+
     // 添加数据行
     for (const forecast of forecastDataList) {
       if (!forecast.loanNumber || forecast.loanNumber.trim() === '') {
         continue;
       }
 
+      // 获取原始数据
+      const originalData = originalDataMap.get(forecast.loanNumber);
+
       const row = [
         forecast.loanNumber,
-        forecast.loanAmount !== undefined && forecast.loanAmount !== null ? forecast.loanAmount.toString() : '',
-        forecast.maturityDate || '', // Maturity Date
-        forecast.extendedDate || '', // Extended Date
-        forecast.outstandingBalance ?? '', // Outstanding Balance - 保留"0"值
-        forecast.undisbursedAmount ?? '', // Undisbursed Amount - 保留"0"值
-        forecast.percentOfCompletion ?? ''  // % of Completion - 保留"0"值
+        forecast.loanAmount || '',
+        originalData?.maturityDate || '', // Maturity Date
+        originalData?.extendedDate || '', // Extended Date
+        originalData?.outstandingBalance || '', // Outstanding Balance
+        originalData?.undisbursedAmount || '', // Undisbursed Amount
+        originalData?.percentOfCompletion || ''  // % of Completion
       ];
 
       // 添加预测数据
       for (const month of months) {
-        const amount = forecast.forecastData?.[month] ?? 0;
+        const amount = forecast.forecastData?.[month] || 0;
         row.push(amount.toString());
         columnSums[month] += amount;
       }
@@ -574,7 +578,7 @@ export class CsvProcessor {
 
     for (const month of months) {
       const sum = columnSums[month];
-      sumRow.push(sum.toString()); // 保留0值
+      sumRow.push(sum > 0 ? sum.toString() : '');
     }
 
     csvRows.push(sumRow.join(','));
@@ -586,42 +590,6 @@ export class CsvProcessor {
     const url = URL.createObjectURL(blob);
     
     return url;
-  }
-
-  // 处理上传并生成预测（使用指定的batchId）
-  async processUploadWithBatchId(file: File, startMonth: string, batchId: string): Promise<DataIngestionResponse> {
-    try {
-      // 处理CSV文件
-      const csvDataList = await this.processCsvFile(file);
-      
-      // 转换为预测数据
-      const forecastDataList = this.convertToLoanForecastData(csvDataList, startMonth);
-      
-      // 生成CSV下载链接
-      const csvUrl = this.generateForecastCsv(forecastDataList, file.name);
-      
-      return {
-        batchId,
-        status: 'SUCCESS',
-        totalRecords: csvDataList.length,
-        processedRecords: forecastDataList.length,
-        failedRecords: csvDataList.length - forecastDataList.length,
-        message: 'Processing completed successfully',
-        loanForecasts: forecastDataList,
-        csvUrl // 添加CSV下载链接
-      };
-    } catch (error) {
-      console.error('Processing failed:', error);
-      return {
-        batchId,
-        status: 'FAILED',
-        totalRecords: 0,
-        processedRecords: 0,
-        failedRecords: 0,
-        message: error instanceof Error ? error.message : 'Processing failed',
-        loanForecasts: []
-      };
-    }
   }
 
   // 处理上传并生成预测
@@ -636,7 +604,7 @@ export class CsvProcessor {
       const forecastDataList = this.convertToLoanForecastData(csvDataList, startMonth);
       
       // 生成CSV下载链接，传递原始CSV数据
-      const csvUrl = this.generateForecastCsv(forecastDataList, file.name);
+      const csvUrl = this.generateForecastCsv(forecastDataList, file.name, csvDataList);
       
       return {
         batchId,
