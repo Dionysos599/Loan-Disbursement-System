@@ -20,7 +20,7 @@ const DashboardModal: React.FC<DashboardModalProps> = ({ batchId, open, onClose 
         </IconButton>
       </Box>
       <Box sx={{ p: 4, minHeight: 400 }}>
-        <PortfolioDashboard batchId={batchId} open={open} onClose={onClose} />
+        <PortfolioDashboard batchId={batchId} />
       </Box>
     </Dialog>
   );

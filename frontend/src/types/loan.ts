@@ -22,7 +22,6 @@ export interface UploadHistory {
   failedRecords: number;
   originalFilePath?: string;
   forecastCsvPath?: string;
-  csvUrl?: string; // 添加CSV下载链接
 }
 
 export interface DataIngestionResponse {
@@ -33,5 +32,4 @@ export interface DataIngestionResponse {
   failedRecords: number;
   message: string;
   loanForecasts: LoanForecastData[];
-  csvUrl?: string; // 添加CSV下载链接
 } 
